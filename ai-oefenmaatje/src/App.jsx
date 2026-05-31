@@ -1,174 +1,185 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-
-const words = [
-  {
-    word: "boom",
-    instruction: "Maak het woord boom met de blokjes.",
-    hint: "B - oo - m. De oo-klank zit in het midden.",
-  },
-  {
-    word: "maan",
-    instruction: "Maak het woord maan met de blokjes.",
-    hint: "M - aa - n. Let op de lange aa-klank.",
-  },
-  {
-    word: "vis",
-    instruction: "Maak het woord vis met de blokjes.",
-    hint: "V - i - s. Een kort woord met één klinker.",
-  },
-];
-
-const responses = {
-  correct: [
-    "Goed gedaan. Het woord klopt.",
-    "Ja, dat is goed gespeld.",
-    "Mooi. Je hebt de klanken goed neergelegd.",
-  ],
-  wrong: [
-    "Bijna. Kijk nog eens naar de klinker.",
-    "Nog niet helemaal. Luister nog eens naar het woord.",
-    "Probeer het rustig opnieuw. Begin bij de eerste klank.",
-  ],
-  frustrated: [
-    "Dat is niet erg. We doen het stap voor stap.",
-    "Deze is lastig. Neem even de tijd.",
-    "Goed dat je blijft proberen. We maken het samen kleiner.",
-  ],
-  hint: [
-    "Rood is voor medeklinkers. Wit is voor klinkers.",
-    "Leg het woord van links naar rechts neer.",
-    "Luister eerst naar de eerste klank. Daarna naar de klinker.",
-  ],
-};
-
-function pick(list) {
-  return list[Math.floor(Math.random() * list.length)];
-}
+import LessonView from "./components/lesson/LessonView.jsx";
+import ParentPanel from "./components/lesson/ParentPanel.jsx";
+import StatusBadge from "./components/StatusBadge.jsx";
+import { SURVEY_QUESTIONS } from "./data/lesson.js";
+import { useLesson } from "./hooks/useLesson.js";
+import { fetchConfig } from "./services/ai.js";
+import * as speech from "./services/speech.js";
 
 export default function App() {
-  const [wordIndex, setWordIndex] = useState(0);
-  const [message, setMessage] = useState(
-    "Hoi. Ik help je vandaag met woorden bouwen."
+  const [screen, setScreen] = useState("intro");
+  const [config, setConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [surveyRatings, setSurveyRatings] = useState(
+    Object.fromEntries(SURVEY_QUESTIONS.map((q) => [q, 0]))
   );
-  const [lastAction, setLastAction] = useState("Klaar om te starten");
+  const [surveyOpen, setSurveyOpen] = useState({ good: "", better: "" });
+  const [surveySubmitted, setSurveySubmitted] = useState(false);
 
-  const current = words[wordIndex];
+  const lesson = useLesson();
 
-  function speak(text, action = "") {
-    setMessage(text);
-    if (action) setLastAction(action);
+  useEffect(() => {
+    speech.initVoices();
+    async function loadConfig() {
+      for (let i = 0; i < 5; i += 1) {
+        try {
+          const cfg = await fetchConfig();
+          setConfig(cfg);
+          if (cfg.tts?.hasExternalTts) return;
+        } catch {
+          /* retry */
+        }
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+    loadConfig().finally(() => setConfigLoading(false));
+  }, []);
 
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "nl-NL";
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-
-    window.speechSynthesis.speak(utterance);
+  async function handleStart() {
+    setScreen("lesson");
+    await lesson.startLesson();
   }
 
-  function start() {
-    speak(current.instruction, "Oefening gestart");
+  function handleSurveySubmit(event) {
+    event.preventDefault();
+    setSurveySubmitted(true);
+    console.info("[Oefenmaatje survey]", { ratings: surveyRatings, open: surveyOpen });
   }
 
-  function nextWord() {
-    const next = (wordIndex + 1) % words.length;
-    setWordIndex(next);
-    speak(words[next].instruction, "Nieuw woord");
+  if (screen === "intro") {
+    return (
+      <div className="app app--intro">
+        <div className="intro-card">
+          <p className="eyebrow">AI-lesmodus · Prototype</p>
+          <h1>Oefenmaatje</h1>
+          <StatusBadge config={config} />
+          <p className="intro-lead">
+            Korte proefles met een AI-oefenmaatje. Uw kind wordt stap voor stap
+            begeleid. Dit vervangt geen leraar.
+          </p>
+          <ul className="intro-list">
+            <li>Zit samen bij de computer of tablet.</li>
+            <li>Laat uw kind luisteren en zelf kiezen.</li>
+            <li>Help alleen als uw kind vastloopt.</li>
+            <li>Vul aan het eind de korte vragenlijst in.</li>
+          </ul>
+          <div className="intro-legend">
+            <div className="intro-legend__item">
+              <span className="lego-block lego-block--consonant lego-block--small">
+                <span className="lego-block__studs" />
+              </span>
+              <span>Rood = medeklinker</span>
+            </div>
+            <div className="intro-legend__item">
+              <span className="lego-block lego-block--vowel lego-block--small">
+                <span className="lego-block__studs" />
+              </span>
+              <span>Wit = klinker</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn--primary btn--large"
+            disabled={configLoading}
+            onClick={handleStart}
+          >
+            {configLoading ? "Laden…" : "Start de les"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "survey") {
+    return (
+      <div className="app app--survey">
+        <div className="survey-card">
+          <p className="eyebrow">Afsluiting</p>
+          <h1>Vragenlijst voor ouder</h1>
+          <p className="survey-lead">
+            Bedankt. Geef hieronder uw mening (niet opgeslagen op een server).
+          </p>
+          {surveySubmitted ? (
+            <p className="survey-thanks">Bedankt voor uw feedback.</p>
+          ) : (
+            <form className="survey-form" onSubmit={handleSurveySubmit}>
+              {SURVEY_QUESTIONS.map((question) => (
+                <fieldset key={question} className="survey-scale">
+                  <legend>{question}</legend>
+                  <div className="survey-scale__options">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <label key={value} className="survey-scale__label">
+                        <input
+                          type="radio"
+                          name={question}
+                          value={value}
+                          checked={surveyRatings[question] === value}
+                          onChange={() =>
+                            setSurveyRatings((prev) => ({
+                              ...prev,
+                              [question]: value,
+                            }))
+                          }
+                          required
+                        />
+                        <span>{value}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
+              <label className="survey-open">
+                Wat werkte goed?
+                <textarea
+                  value={surveyOpen.good}
+                  onChange={(e) =>
+                    setSurveyOpen((p) => ({ ...p, good: e.target.value }))
+                  }
+                  rows={3}
+                />
+              </label>
+              <label className="survey-open">
+                Wat kan beter?
+                <textarea
+                  value={surveyOpen.better}
+                  onChange={(e) =>
+                    setSurveyOpen((p) => ({ ...p, better: e.target.value }))
+                  }
+                  rows={3}
+                />
+              </label>
+              <button type="submit" className="btn btn--primary">
+                Verstuur feedback
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="page">
-      <section className="stage">
-        <div className="topbar">
+    <div className="app">
+      <main className="child-area child-area--lesson">
+        <header className="child-header">
           <div>
-            <p className="eyebrow">Prototype</p>
-            <h1>Oefenmaatje</h1>
+            <p className="eyebrow">Les</p>
+            <h1>AI-oefenmaatje</h1>
           </div>
-          <span className="status">{lastAction}</span>
-        </div>
-
-        <div className="voice-panel">
-          <div className="orb">
-            <span />
-          </div>
-
-          <p className="speaker-label">AI-stem</p>
-          <p className="message">“{message}”</p>
-
-          <button className="ghost-button" onClick={() => speak(message)}>
-            Herhaal zin
-          </button>
-        </div>
-
-        <div className="task-grid">
-          <div className="task-card">
-            <p className="label">Woord</p>
-            <h2>{current.word}</h2>
-            <p className="hint">{current.hint}</p>
-          </div>
-
-          <div className="block-card">
-            <p className="label">Blokjes</p>
-
-            <div className="legend-row">
-              <div className="lego red-lego" />
-              <div>
-                <strong>Rood</strong>
-                <p>medeklinker</p>
-              </div>
-            </div>
-
-            <div className="legend-row">
-              <div className="lego white-lego" />
-              <div>
-                <strong>Wit</strong>
-                <p>klinker</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <aside className="operator">
-        <p className="eyebrow">Verborgen bediening</p>
-        <h2>Wizard-of-Oz</h2>
-        <p className="operator-text">
-          Deze knoppen simuleren de camera. Tijdens een test ziet het kind dit
-          paneel niet.
-        </p>
-
-        <div className="button-list">
-          <button onClick={start}>Start oefening</button>
-          <button onClick={() => speak(pick(responses.correct), "Goed")}>
-            Antwoord is goed
-          </button>
-          <button onClick={() => speak(pick(responses.wrong), "Fout")}>
-            Antwoord is fout
-          </button>
-          <button
-            onClick={() => speak(pick(responses.frustrated), "Frustratie")}
-          >
-            Kind is gefrustreerd
-          </button>
-          <button onClick={() => speak(pick(responses.hint), "Hint gegeven")}>
-            Geef hint
-          </button>
-          <button onClick={nextWord}>Volgend woord</button>
-        </div>
-
-        <div className="boundary-box">
-          <h3>Rol van de AI</h3>
-          <ul>
-            <li>begeleidt de oefening</li>
-            <li>geeft directe feedback</li>
-            <li>bepaalt geen leerdoelen</li>
-            <li>vervangt de leerkracht niet</li>
-          </ul>
-        </div>
-      </aside>
+        </header>
+        <LessonView
+          lesson={lesson}
+          config={config}
+          onEndSurvey={() => setScreen("survey")}
+        />
+      </main>
+      <ParentPanel
+        config={config}
+        lesson={lesson}
+        onGoSurvey={() => setScreen("survey")}
+      />
     </div>
   );
 }

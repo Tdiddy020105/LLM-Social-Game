@@ -1,16 +1,64 @@
-# React + Vite
+# AI Oefenmaatje
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Research prototype: a Dutch AI-led spelling lesson for children with dyslexia. One guided session—no game menu. Parents and children can use it remotely without a researcher present.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **AI lesson mode** — substitute-teacher flow in Dutch (OpenAI + scripted fallback)
+- **One guided path**: intro → difficulty → Klinker Detective → Klank volgorde → Woord bouwen
+- **Reflection before feedback** — certainty, slow spelling, keep or change answer
+- **Reflection flow**: certainty → why → check → feedback
+- **Configurable TTS**: ElevenLabs, Azure, Google Cloud, or browser fallback
+- **Parent panel**: frustration recovery, session info
+- **End survey** for parents (on-screen only, not stored)
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Copy environment variables:
 
-## Expanding the ESLint configuration
+```bash
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Add `OPENAI_API_KEY` and ElevenLabs keys for live AI + Dutch voice (see `.env.example`).
+
+3. Install and run:
+
+```bash
+npm install   # required once — installs Vite, Express, etc.
+npm run dev     # starts frontend + API together
+```
+
+If you prefer two terminals: `npm run dev:client` and `npm run dev:server`.
+
+### ElevenLabs voices
+
+On startup the server lists your account voices and picks a **premade** (free-tier) voice for Dutch. To see all voices:
+
+```bash
+npm run voices
+# or while the server runs: http://localhost:3001/api/voices
+```
+
+To force a specific voice, set `ELEVENLABS_VOICE_ID` in `.env` to an id from that list.
+
+- Frontend: http://localhost:5173  
+- API: http://localhost:3001  
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Vite + API server |
+| `npm run dev:client` | Frontend only |
+| `npm run dev:server` | API only |
+
+## API routes
+
+- `GET /api/config` — OpenAI/TTS status
+- `POST /api/chat` — LLM response (`{ context }`)
+- `POST /api/tts` — speech audio or `{ provider: "browser" }`
+
+## Research notes
+
+This prototype tests interaction design, supportive AI feedback, reflection, and remote usability. It does not diagnose dyslexia or replace teachers.
