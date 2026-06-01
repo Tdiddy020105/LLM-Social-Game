@@ -1,13 +1,14 @@
 import { getLessonFallback } from "./lessonFallbacks.js";
 
-export const SYSTEM_PROMPT = `You are a calm Dutch AI substitute teacher for children with dyslexia. You guide short spelling exercises in lesson mode. You use short, clear Dutch sentences (max 2 sentences). You ask children to reflect before giving feedback. You encourage effort and reasoning, not just correct answers. You never diagnose dyslexia, never judge the child, and never replace the human teacher. If a child struggles, you slow down, give hints, or switch to an easier confidence task.
+export const SYSTEM_PROMPT = `Je bent een vriendelijke Nederlandse oefenmaatje voor kinderen van ongeveer 10 jaar met dyslexie. Je begeleidt korte spellingoefeningen. Gebruik korte, duidelijke zinnen (max 2). Vraag het kind eerst te reflecteren voordat je feedback geeft. Moedig inspanning en uitleg aan, niet alleen het goede antwoord. Je stelt nooit een diagnose en vervangt geen menselijke leraar.
 
-Rules:
-- Always Dutch only.
-- Calm, like a substitute teacher / learning buddy.
-- No jokes, no emojis, no exaggerated praise.
-- Do not reveal the correct answer before reflection unless mistakeCount is 3.
-- Stay within spelling practice.`;
+Regels:
+- Altijd alleen Nederlands.
+- Warm en rustig, als een leerbuddy — niet streng.
+- Licht enthousiasme mag ("lekker bezig", "goed geprobeerd"), geen overdreven hype of grappen.
+- Noem het woord ALTIJD letterlijk (bijv. "boom"), nooit alleen "dit woord" of "het woord" zonder de letters.
+- Geef het juiste antwoord niet weg vóór reflectie, tenzij mistakeCount 3 is.
+- Blijf bij spellingoefening.`;
 
 export function buildUserMessage(context) {
   const {
@@ -25,7 +26,7 @@ export function buildUserMessage(context) {
   const parts = [`Lesfase: ${phase}`];
   if (taskType) parts.push(`Opdracht: ${taskType}`);
   if (difficulty) parts.push(`Moeilijkheid: ${difficulty}`);
-  if (word) parts.push(`Woord: ${word}`);
+  if (word && !context.hideWord) parts.push(`Woord: ${word}`);
   if (vowel) parts.push(`Juiste klinker: ${vowel}`);
   if (typeof correct === "boolean") parts.push(`Klopt: ${correct}`);
   if (mistakeCount != null) parts.push(`Fouten dit woord: ${mistakeCount}`);
@@ -37,11 +38,15 @@ export function buildUserMessage(context) {
       'Zeg tegen het kind: "Hoi, ik ben je oefenmaatje. We gaan samen woorden oefenen. Je hoeft het niet meteen goed te doen. We denken samen na."',
     difficulty_ask:
       'Vraag: "Wil je makkelijk, normaal of moeilijk beginnen?"',
+    task_explain_klinker:
+      "Leg in één zin uit: luister naar het woord (alleen audio, niet op het scherm) en kies de klinker in het midden. Noem het woord NIET in je antwoord.",
     task_explain:
-      "Leg in één zin uit wat de kind moet doen bij deze opdracht (Klinker Detective, Klank volgorde, of Woord bouwen).",
+      "Leg in één zin uit wat het kind moet doen. Noem het woord letterlijk. Bij klank-volgorde/woord-bouwen: zeg dat het woord op het scherm staat.",
     reflect_certain: 'Vraag rustig: "Ben je zeker?"',
     reflect_slow:
-      "Help het kind het woord langzaam te zeggen en vraag welke klank in het midden zit. Geen antwoord geven.",
+      "Vraag het kind het woord langzaam in gedachten te zeggen en welke klinker in het midden zit. Schrijf GEEN letters of klanken in je antwoord.",
+    reflect_slow_klinker:
+      "Zelfde als reflect_slow maar noem het woord niet en geef geen spelling.",
     feedback_correct:
       'Proces-feedback, bijvoorbeeld: "Mooi. Je hebt goed geluisterd naar de klank in het woord."',
     feedback_wrong:
@@ -59,7 +64,13 @@ export function buildUserMessage(context) {
       "Bedank het kind. Zeg dat de ouder nog vragen invult.",
   };
 
-  if (instructions[phase]) parts.push(`Instructie: ${instructions[phase]}`);
+  if (phase === "task_explain" && taskType === "klinker-detective") {
+    parts.push(`Instructie: ${instructions.task_explain_klinker}`);
+  } else if (phase === "reflect_slow" && taskType === "klinker-detective") {
+    parts.push(`Instructie: ${instructions.reflect_slow_klinker}`);
+  } else if (instructions[phase]) {
+    parts.push(`Instructie: ${instructions[phase]}`);
+  }
   return parts.join("\n");
 }
 

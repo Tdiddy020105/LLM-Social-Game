@@ -1,13 +1,5 @@
 import { WORDS, buildTray, emptySlots, shuffle } from "./words.js";
 
-export const SURVEY_QUESTIONS = [
-  "Mijn kind begreep wat de bedoeling was.",
-  "Mijn kind bleef betrokken.",
-  "De feedback voelde helpend.",
-  "De AI voelde als begeleiding.",
-  "Mijn kind raakte gefrustreerd.",
-];
-
 export const DIFFICULTIES = [
   { id: "makkelijk", label: "Makkelijk" },
   { id: "normaal", label: "Normaal" },
@@ -15,15 +7,16 @@ export const DIFFICULTIES = [
 ];
 
 export const TASK_TYPES = [
-  { id: "klinker-detective", label: "Klinker Detective", order: 0 },
-  { id: "klank-volgorde", label: "Klank volgorde", order: 1 },
-  { id: "woord-bouwen", label: "Woord bouwen", order: 2 },
+  { id: "klinker-detective", label: "Klinker-speurder", order: 0 },
+  { id: "blok-puzzel", label: "Blok-puzzel", order: 1 },
 ];
+
+export const LAST_TASK_TYPE = "blok-puzzel";
 
 const WORDS_BY_DIFFICULTY = {
   makkelijk: ["vis", "tak", "maan"],
-  normaal: ["boom", "maan", "vis", "tak"],
-  moeilijk: ["raam", "boom", "maan", "vis"],
+  normaal: ["boom", "maan", "vis"],
+  moeilijk: ["raam", "boom", "maan"],
 };
 
 export const FAVORITE_BLOCKS = [
@@ -46,6 +39,45 @@ export function slowSpelling(word) {
   const data = getWordData(word);
   if (!data) return word;
   return data.letters.map((l) => l.text).join(" - ");
+}
+
+/** Syllable chunks for paced Dutch TTS (e.g. ["b", "oo", "m"]) */
+export function wordSyllables(word) {
+  const data = getWordData(word);
+  if (!data) return [word];
+  return data.letters.map((l) => l.text);
+}
+
+/** Natural Dutch sentence — whole word, same voice as the maatje (not letter-by-letter). */
+export function wordTtsText(word) {
+  return `Het woord is ${word}.`;
+}
+
+/** Short Dutch word so TTS says the klinker as in real spelling (not letter-by-letter). */
+const VOWEL_KLANKWOORD = {
+  a: "tak",
+  aa: "maan",
+  e: "bed",
+  ee: "neef",
+  i: "vis",
+  ie: "zien",
+  o: "bot",
+  oo: "boom",
+};
+
+export function vowelSpeakText(grapheme) {
+  return VOWEL_KLANKWOORD[grapheme] ?? grapheme;
+}
+
+/** Drag puzzle: correct when red/white order matches the word's klinker/medeklinker pattern. */
+export function dragPatternMatches(slots, wordData) {
+  if (!wordData?.letters?.length) return false;
+  const pattern = wordData.letters.map((l) => l.type);
+  const attempt = slots.map((s) => s?.type ?? null);
+  return (
+    attempt.length === pattern.length &&
+    pattern.every((type, i) => attempt[i] === type)
+  );
 }
 
 export function initDragState(word) {

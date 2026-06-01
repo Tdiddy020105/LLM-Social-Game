@@ -11,7 +11,7 @@ export function useCompanion() {
     setLoading(true);
     const result = await askCompanion(context);
     setMessage(result.text);
-    setSource(result.source === "openai" ? "AI" : "offline");
+    setSource(result.source === "genai" ? "AI" : "offline");
     setLoading(false);
     await speech.speak(result.text);
     return result.text;

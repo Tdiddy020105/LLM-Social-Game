@@ -1,45 +1,46 @@
-import { getLastProviderUsed, getLastTtsError } from "../services/speech.js";
+import { getLastTtsError } from "../services/speech.js";
 
 export default function VoicePanel({
   message,
   loading,
   onRepeat,
-  aiSource,
-  voiceName,
+  compact = false,
+  minimal = false,
 }) {
-  const ttsLabel =
-    getLastProviderUsed() === "elevenlabs"
-      ? "ElevenLabs"
-      : getLastProviderUsed() === "browser"
-        ? "browser"
-        : getLastProviderUsed();
-
   const ttsError = getLastTtsError();
 
-  return (
-    <section className="voice-panel" aria-live="polite">
-      <div className="voice-orb" aria-hidden="true">
-        <span className={loading ? "voice-orb__pulse" : ""} />
+  if (minimal) {
+    return (
+      <div className="voice-mini" aria-live="polite">
+        {message && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--compact"
+            onClick={onRepeat}
+            title="Herhaal"
+          >
+            ↻
+          </button>
+        )}
+        {ttsError && <span className="voice-error">{ttsError}</span>}
       </div>
-      <p className="voice-label">
-        AI-oefenmaatje
-        {aiSource && <span className="voice-source"> · {aiSource}</span>}
-        <span className="voice-source">
-          {" "}
-          · stem: {voiceName || ttsLabel}
-        </span>
-      </p>
+    );
+  }
+
+  return (
+    <section
+      className={`voice-panel ${compact ? "voice-panel--compact" : ""}`}
+      aria-live="polite"
+    >
       <p className="voice-message">
-        {loading ? "Even nadenken…" : message || "Luister naar je oefenmaatje…"}
+        {loading ? "…" : message || ""}
       </p>
-      {ttsError && ttsLabel === "browser" && (
-        <p className="voice-error">{ttsError}</p>
-      )}
-      {message && !loading && (
-        <button type="button" className="btn btn--ghost" onClick={onRepeat}>
-          Herhaal zin
+      {message && !loading && onRepeat && (
+        <button type="button" className="btn btn--ghost btn--compact" onClick={onRepeat}>
+          ↻
         </button>
       )}
+      {ttsError && <p className="voice-error">{ttsError}</p>}
     </section>
   );
 }

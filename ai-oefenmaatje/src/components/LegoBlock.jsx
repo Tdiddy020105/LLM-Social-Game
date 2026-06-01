@@ -1,13 +1,17 @@
-export default function LegoBlock({ letter, draggable = true }) {
+export default function LegoBlock({ letter, draggable = true, hideLabel = true }) {
   const className =
     letter.type === "consonant"
       ? "lego-block lego-block--consonant"
       : "lego-block lego-block--vowel";
 
+  const typeLabel =
+    letter.type === "consonant" ? "medeklinker" : "klinker";
+
   return (
     <div
       className={className}
       draggable={draggable}
+      aria-label={typeLabel}
       onDragStart={
         draggable
           ? (event) => {
@@ -18,7 +22,11 @@ export default function LegoBlock({ letter, draggable = true }) {
       }
     >
       <span className="lego-block__studs" aria-hidden="true" />
-      <span className="lego-block__label">{letter.text}</span>
+      {!hideLabel && letter.text ? (
+        <span className="lego-block__label">{letter.text}</span>
+      ) : (
+        <span className="lego-block__hint" aria-hidden="true" />
+      )}
     </div>
   );
 }

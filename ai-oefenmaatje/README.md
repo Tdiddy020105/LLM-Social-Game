@@ -4,11 +4,11 @@ Research prototype: a Dutch AI-led spelling lesson for children with dyslexia. O
 
 ## Features
 
-- **AI lesson mode** — substitute-teacher flow in Dutch (OpenAI + scripted fallback)
+- **AI lesson mode** — substitute-teacher flow in Dutch (Google Gemini + scripted fallback)
 - **One guided path**: intro → difficulty → Klinker Detective → Klank volgorde → Woord bouwen
 - **Reflection before feedback** — certainty, slow spelling, keep or change answer
 - **Reflection flow**: certainty → why → check → feedback
-- **Configurable TTS**: ElevenLabs, Azure, Google Cloud, or browser fallback
+- **Browser TTS** (free Dutch voice in Chrome/Edge/Safari); optional Azure/Google via server
 - **Parent panel**: frustration recovery, session info
 - **End survey** for parents (on-screen only, not stored)
 
@@ -20,7 +20,7 @@ Research prototype: a Dutch AI-led spelling lesson for children with dyslexia. O
 cp .env.example .env
 ```
 
-2. Add `OPENAI_API_KEY` and ElevenLabs keys for live AI + Dutch voice (see `.env.example`).
+2. Optional: `GOOGLE_GENAI_API_KEY` in `.env`. Speech uses the browser by default (`TTS_PROVIDER=browser`).
 
 3. Install and run:
 
@@ -30,17 +30,6 @@ npm run dev     # starts frontend + API together
 ```
 
 If you prefer two terminals: `npm run dev:client` and `npm run dev:server`.
-
-### ElevenLabs voices
-
-On startup the server lists your account voices and picks a **premade** (free-tier) voice for Dutch. To see all voices:
-
-```bash
-npm run voices
-# or while the server runs: http://localhost:3001/api/voices
-```
-
-To force a specific voice, set `ELEVENLABS_VOICE_ID` in `.env` to an id from that list.
 
 - Frontend: http://localhost:5173  
 - API: http://localhost:3001  
@@ -55,7 +44,7 @@ To force a specific voice, set `ELEVENLABS_VOICE_ID` in `.env` to an id from tha
 
 ## API routes
 
-- `GET /api/config` — OpenAI/TTS status
+- `GET /api/config` — GenAI/TTS status
 - `POST /api/chat` — LLM response (`{ context }`)
 - `POST /api/tts` — speech audio or `{ provider: "browser" }`
 

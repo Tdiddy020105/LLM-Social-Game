@@ -1,14 +1,30 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
+  LAST_TASK_TYPE,
   TASK_TYPES,
   buildWordQueue,
-  getWordData,
+  dragPatternMatches,
   initDragState,
-  slowSpelling,
+  vowelSpeakText,
+  wordTtsText,
 } from "../data/lesson.js";
-import { askCompanion } from "../services/ai.js";
+import {
+  BLOCK_LEGEND_LINE,
+  CONFIDENCE_LINE,
+  DIFFICULTY_LINE,
+  KID_INTRO_LINE,
+  REFLECT_LINE,
+  levelHint,
+  taskHint,
+} from "../lib/lessonScript.js";
 import { getLessonFallback } from "../lib/lessonFallbacks.js";
+import { askCompanion } from "../services/ai.js";
 import * as speech from "../services/speech.js";
+
+function lineText(line) {
+  if (typeof line === "string") return line;
+  return line?.line || "";
+}
 
 function nextTaskType(current) {
   const order = TASK_TYPES.map((t) => t.id);
@@ -16,12 +32,28 @@ function nextTaskType(current) {
   return idx < order.length - 1 ? order[idx + 1] : current;
 }
 
-export function useLesson() {
-  const [step, setStep] = useState("ai_intro");
+function isDragTask(type) {
+  return type === "blok-puzzel";
+}
+
+function fallbackForPhase(phase, taskType, { mistakeCount, correct } = {}) {
+  return getLessonFallback({
+    phase,
+    taskType,
+    mistakeCount,
+    correct,
+  });
+}
+
+export function useLesson({ aiEnabled = false } = {}) {
+  const [step, setStep] = useState("difficulty");
   const [taskPhase, setTaskPhase] = useState("answer");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState("");
+  const [caption, setCaption] = useState("");
+  const [speaking, setSpeaking] = useState(false);
+
+  const lastSpokenRef = useRef("");
+  const lessonStartedRef = useRef(false);
+  const blockLegendSpokenRef = useRef(false);
 
   const [difficulty, setDifficulty] = useState(null);
   const [taskType, setTaskType] = useState("klinker-detective");
@@ -29,48 +61,76 @@ export function useLesson() {
   const [wordIndex, setWordIndex] = useState(0);
   const [mistakeCount, setMistakeCount] = useState(0);
   const [correctStreak, setCorrectStreak] = useState(0);
-  const [totalCorrect, setTotalCorrect] = useState(0);
 
   const [vowelChoice, setVowelChoice] = useState(null);
   const [tray, setTray] = useState([]);
   const [slots, setSlots] = useState([]);
 
-  const [confidenceMode, setConfidenceMode] = useState(null);
-  const [favoritePlaced, setFavoritePlaced] = useState(false);
   const [pendingLevelUp, setPendingLevelUp] = useState(false);
-  const [retryAfterConfidence, setRetryAfterConfidence] = useState(false);
 
   const currentWord = wordQueue[wordIndex];
   const taskMeta = TASK_TYPES.find((t) => t.id === taskType);
 
-  const aiSay = useCallback(async (context) => {
-    setLoading(true);
-    let result;
-    try {
-      result = await askCompanion(context);
-    } catch {
-      result = { text: getLessonFallback(context), source: "fallback" };
-    }
-    setMessage(result.text);
-    setSource(result.source === "openai" ? "AI" : "offline");
-    setLoading(false);
-    await speech.speak(result.text);
-    return result.text;
+  const speakCaption = useCallback(async (text, { interrupt = false } = {}) => {
+    const line = text?.trim();
+    if (!line) return;
+    lastSpokenRef.current = line;
+    setCaption(line);
+    setSpeaking(true);
+    await speech.speakAndWait(line, { interrupt });
+    setSpeaking(false);
   }, []);
 
-  const aiContext = useCallback(
-    (overrides = {}) => ({
-      phase: overrides.phase,
-      taskType,
-      difficulty,
-      word: currentWord?.word,
-      vowel: currentWord?.vowel,
-      mistakeCount,
-      correctStreak,
-      slowSpelling: currentWord ? slowSpelling(currentWord.word) : "",
-      ...overrides,
-    }),
-    [taskType, difficulty, currentWord, mistakeCount, correctStreak]
+  const speakWord = useCallback(
+    async (word, { interrupt = false } = {}) => {
+      if (!word) return;
+      const phrase = wordTtsText(word);
+      await speakCaption(phrase, { interrupt });
+    },
+    [speakCaption]
+  );
+
+  const buildContext = useCallback(
+    (phase, extra = {}) => {
+      const hideWord =
+        taskType === "klinker-detective" &&
+        (taskPhase === "answer" || phase === "feedback_wrong");
+      const includeVowel =
+        phase !== "feedback_wrong" || taskType !== "klinker-detective";
+
+      return {
+        phase,
+        taskType,
+        difficulty,
+        word: currentWord?.word,
+        vowel: includeVowel ? currentWord?.vowel : undefined,
+        hideWord,
+        mistakeCount: extra.mistakeCount ?? mistakeCount,
+        correctStreak,
+        correct: extra.correct,
+      };
+    },
+    [taskType, taskPhase, difficulty, currentWord, mistakeCount, correctStreak]
+  );
+
+  /** Gemini for feedback; scripted fallback if offline or no API key. */
+  const sayPhase = useCallback(
+    async (phase, extra = {}, { interrupt = false } = {}) => {
+      const fallback = fallbackForPhase(phase, taskType, extra);
+
+      if (!aiEnabled) {
+        await speakCaption(fallback, { interrupt });
+        return;
+      }
+
+      try {
+        const { text } = await askCompanion(buildContext(phase, extra));
+        await speakCaption(text?.trim() || fallback, { interrupt });
+      } catch {
+        await speakCaption(fallback, { interrupt });
+      }
+    },
+    [aiEnabled, buildContext, speakCaption, taskType]
   );
 
   const resetTaskUI = useCallback((word) => {
@@ -82,118 +142,113 @@ export function useLesson() {
     setSlots(drag.slots);
   }, []);
 
-  const startLesson = useCallback(async () => {
-    setStep("ai_intro");
-    await aiSay(aiContext({ phase: "lesson_intro" }));
+  const resetLesson = useCallback(() => {
+    lessonStartedRef.current = false;
+    blockLegendSpokenRef.current = false;
     setStep("difficulty");
-    await aiSay(aiContext({ phase: "difficulty_ask" }));
-  }, [aiSay, aiContext]);
+    setTaskPhase("answer");
+    setCaption("");
+    setSpeaking(false);
+    setDifficulty(null);
+    setTaskType("klinker-detective");
+    setWordQueue([]);
+    setWordIndex(0);
+    setMistakeCount(0);
+    setCorrectStreak(0);
+    setVowelChoice(null);
+    setTray([]);
+    setSlots([]);
+    setPendingLevelUp(false);
+  }, []);
+
+  const startLesson = useCallback(async () => {
+    if (lessonStartedRef.current) return;
+    lessonStartedRef.current = true;
+    setStep("difficulty");
+    await speakCaption(KID_INTRO_LINE.line, { interrupt: true });
+    await speakCaption(DIFFICULTY_LINE.line);
+  }, [speakCaption]);
 
   const pickDifficulty = useCallback(
     async (level) => {
-      setDifficulty(level);
       const queue = buildWordQueue(level);
+      const first = queue[0];
+      setDifficulty(level);
       setWordQueue(queue);
       setWordIndex(0);
       setTaskType("klinker-detective");
       setCorrectStreak(0);
-      resetTaskUI(queue[0]);
+      setPendingLevelUp(false);
+      resetTaskUI(first);
       setStep("task");
-      await aiSay(
-        aiContext({ phase: "task_explain", taskType: "klinker-detective" })
-      );
-      await speech.speak(queue[0].word);
+      await speakCaption(lineText(taskHint("klinker-detective")));
+      await speakWord(first.word);
     },
-    [aiSay, aiContext, resetTaskUI]
+    [resetTaskUI, speakCaption, speakWord]
   );
 
   const startConfidenceBreak = useCallback(async () => {
-    setRetryAfterConfidence(true);
-    setConfidenceMode("choose");
     setStep("confidence");
-    await aiSay(aiContext({ phase: "confidence_start" }));
-  }, [aiSay, aiContext]);
+    await speakCaption(CONFIDENCE_LINE.line);
+  }, [speakCaption]);
 
-  const checkAnswer = useCallback(
-    async (parentForced) => {
-      if (!currentWord) return;
+  const checkAnswer = useCallback(async () => {
+    if (!currentWord) return;
 
-      let correct = false;
-      if (taskType === "klinker-detective") {
-        correct = vowelChoice === currentWord.vowel;
-      } else {
-        const attempt = slots.map((s) => s?.text ?? "").join("");
-        correct = attempt === currentWord.word;
+    let correct = false;
+    if (taskType === "klinker-detective") {
+      correct = vowelChoice === currentWord.vowel;
+    } else if (isDragTask(taskType)) {
+      correct = dragPatternMatches(slots, currentWord);
+    }
+
+    if (correct) {
+      setTaskPhase("feedback");
+      const streak = correctStreak + 1;
+      setCorrectStreak(streak);
+      await sayPhase("feedback_correct", { correct: true });
+      if (streak >= 2 && taskType !== LAST_TASK_TYPE) {
+        setPendingLevelUp(true);
       }
+      return;
+    }
 
-      if (parentForced === true) correct = true;
-      if (parentForced === false) correct = false;
+    const nextMistake = mistakeCount + 1;
+    setMistakeCount(nextMistake);
+    setCorrectStreak(0);
 
-      if (correct) {
-        setTaskPhase("feedback");
-        const streak = correctStreak + 1;
-        setCorrectStreak(streak);
-        setTotalCorrect((n) => n + 1);
-        await aiSay(aiContext({ phase: "feedback_correct", correct: true }));
+    if (nextMistake >= 3) {
+      await sayPhase("confidence_start", { correct: false, mistakeCount: 3 });
+      await startConfidenceBreak();
+      return;
+    }
 
-        if (streak >= 2 && taskType !== "woord-bouwen") {
-          setPendingLevelUp(true);
-        }
-        return;
-      }
-
-      const nextMistake = mistakeCount + 1;
-      setMistakeCount(nextMistake);
-      setCorrectStreak(0);
-
-      if (nextMistake >= 3) {
-        await aiSay(
-          aiContext({ phase: "feedback_wrong", mistakeCount: 3, correct: false })
-        );
-        await startConfidenceBreak();
-        return;
-      }
-
-      await aiSay(
-        aiContext({
-          phase: "feedback_wrong",
-          mistakeCount: nextMistake,
-          correct: false,
-        })
-      );
-      setTaskPhase("answer");
-      if (taskType === "klinker-detective") {
-        setVowelChoice(null);
-      }
-    },
-    [
-      taskType,
-      vowelChoice,
-      slots,
-      currentWord,
-      mistakeCount,
-      correctStreak,
-      aiSay,
-      aiContext,
-      startConfidenceBreak,
-    ]
-  );
+    await sayPhase("feedback_wrong", { correct: false, mistakeCount: nextMistake });
+    await speakWord(currentWord.word);
+    setTaskPhase("answer");
+    if (taskType === "klinker-detective") {
+      setVowelChoice(null);
+    }
+  }, [
+    taskType,
+    vowelChoice,
+    slots,
+    currentWord,
+    mistakeCount,
+    correctStreak,
+    sayPhase,
+    speakWord,
+    startConfidenceBreak,
+  ]);
 
   const submitAnswer = useCallback(async () => {
     if (!currentWord) return;
-    setTaskPhase("reflect_certain");
-    await aiSay(aiContext({ phase: "reflect_certain" }));
-    setTaskPhase("reflect_choice");
-    await aiSay(
-      aiContext({
-        phase: "reflect_slow",
-        slowSpelling: slowSpelling(currentWord.word),
-      })
-    );
-  }, [aiSay, aiContext, currentWord]);
+    setTaskPhase("reflect");
+    await speakCaption(REFLECT_LINE.line);
+  }, [currentWord, speakCaption]);
 
-  const keepAnswer = useCallback(async () => {
-    await checkAnswer(undefined);
+  const keepAnswer = useCallback(() => {
+    checkAnswer();
   }, [checkAnswer]);
 
   const changeAnswer = useCallback(() => {
@@ -202,59 +257,48 @@ export function useLesson() {
   }, []);
 
   const finishConfidence = useCallback(async () => {
-    setConfidenceMode(null);
-    setFavoritePlaced(false);
     setStep("task");
     setMistakeCount(0);
     resetTaskUI(currentWord);
-    await aiSay(aiContext({ phase: "confidence_done" }));
-    await aiSay(aiContext({ phase: "task_explain", taskType }));
-    if (taskType === "klinker-detective") {
-      await speech.speak(currentWord.word);
-    } else if (taskType !== "woord-bouwen") {
-      await speech.speak(`Het woord is ${currentWord.word}.`);
-    }
-  }, [aiSay, aiContext, currentWord, taskType, resetTaskUI]);
+    await speakCaption(lineText(taskHint(taskType)));
+    await speakWord(currentWord.word);
+  }, [currentWord, taskType, resetTaskUI, speakCaption, speakWord]);
 
   const advanceWord = useCallback(async () => {
     if (pendingLevelUp) {
       setPendingLevelUp(false);
       const nextType = nextTaskType(taskType);
+      const wordData = wordQueue[wordIndex];
       setTaskType(nextType);
-      resetTaskUI(wordQueue[wordIndex]);
-      await aiSay(aiContext({ phase: "level_up", taskType: nextType }));
-      await aiSay(aiContext({ phase: "task_explain", taskType: nextType }));
-      if (nextType === "klinker-detective") {
-        await speech.speak(wordQueue[wordIndex].word);
-      } else {
-        await speech.speak(`Het woord is ${wordQueue[wordIndex].word}.`);
+      resetTaskUI(wordData);
+      if (isDragTask(nextType) && !blockLegendSpokenRef.current) {
+        blockLegendSpokenRef.current = true;
+        await speakCaption(BLOCK_LEGEND_LINE.line);
       }
-      return false;
+      await speakCaption(lineText(levelHint()));
+      await speakWord(wordData.word);
+      return;
     }
 
     if (wordIndex >= wordQueue.length - 1) {
       setStep("lesson_done");
-      await aiSay(aiContext({ phase: "session_end" }));
-      return true;
+      await sayPhase("session_end");
+      return;
     }
 
     const next = wordIndex + 1;
+    const wordData = wordQueue[next];
     setWordIndex(next);
-    resetTaskUI(wordQueue[next]);
-    if (taskType === "klinker-detective") {
-      await speech.speak(wordQueue[next].word);
-    } else {
-      await speech.speak(`Het woord is ${wordQueue[next].word}.`);
-    }
-    return false;
+    resetTaskUI(wordData);
+    await speakWord(wordData.word);
   }, [
     pendingLevelUp,
     taskType,
     wordIndex,
     wordQueue,
-    aiSay,
-    aiContext,
     resetTaskUI,
+    sayPhase,
+    speakWord,
   ]);
 
   const canSubmit =
@@ -262,41 +306,37 @@ export function useLesson() {
       ? Boolean(vowelChoice)
       : slots.every(Boolean);
 
+  const selectVowel = useCallback((grapheme) => {
+    setVowelChoice(grapheme);
+    if (grapheme) {
+      speech.speakAndWait(vowelSpeakText(grapheme), { interrupt: true });
+    }
+  }, []);
+
   return {
     step,
     taskPhase,
-    message,
-    loading,
-    source,
-    difficulty,
+    caption,
+    speaking,
     taskType,
     taskMeta,
     currentWord,
     wordIndex,
     wordQueue,
-    mistakeCount,
-    correctStreak,
-    totalCorrect,
     vowelChoice,
-    setVowelChoice,
+    selectVowel,
     tray,
     slots,
-    confidenceMode,
-    favoritePlaced,
-    setFavoritePlaced,
     pendingLevelUp,
-    setPendingLevelUp,
     canSubmit,
+    resetLesson,
     startLesson,
     pickDifficulty,
     submitAnswer,
     keepAnswer,
     changeAnswer,
-    checkAnswer,
-    startConfidenceBreak,
     finishConfidence,
     advanceWord,
-    setConfidenceMode,
     handleDropSlot: (slotIndex, letterId) => {
       const fromSlot = slots.findIndex((item) => item?.id === letterId);
       const letter =
@@ -326,7 +366,12 @@ export function useLesson() {
         return next;
       });
     },
-    repeat: () => message && speech.repeat(message),
-    replayWord: () => currentWord && speech.speak(currentWord.word),
+    repeat: () => {
+      if (lastSpokenRef.current) {
+        return speech.repeatLast(lastSpokenRef.current);
+      }
+      return Promise.resolve();
+    },
+    replayWord: () => currentWord && speakWord(currentWord.word, { interrupt: true }),
   };
 }

@@ -32,7 +32,8 @@ export const WORDS = [
     vowel: "aa",
     letters: [
       { id: "maan-m", text: "m", type: "consonant" },
-      { id: "maan-aa", text: "aa", type: "vowel" },
+      { id: "maan-a1", text: "a", type: "vowel" },
+      { id: "maan-a2", text: "a", type: "vowel" },
       { id: "maan-n", text: "n", type: "consonant" },
     ],
     vowelOptions: ["aa", "a", "oo", "ee"],
@@ -76,14 +77,6 @@ export const FAVORITE_BLOCKS = [
   { id: "fav-oo", text: "oo", type: "vowel" },
   { id: "fav-m", text: "m", type: "consonant" },
   { id: "fav-a", text: "a", type: "vowel" },
-];
-
-export const SURVEY_QUESTIONS = [
-  "Mijn kind begreep wat de bedoeling was.",
-  "Mijn kind bleef betrokken.",
-  "De feedback voelde helpend.",
-  "De stem voelde natuurlijk.",
-  "Mijn kind raakte gefrustreerd.",
 ];
 
 export function shuffle(list) {

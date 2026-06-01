@@ -108,7 +108,6 @@ export default function RecoveryPanel({
           tray={recoveryTray}
           onDropSlot={onRecoveryDropSlot}
           onDropTray={onRecoveryDropTray}
-          instruction="Sleep de blokjes in de juiste volgorde."
         />
         {filled && (
           <button

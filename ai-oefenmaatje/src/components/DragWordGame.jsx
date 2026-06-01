@@ -1,3 +1,4 @@
+import BlockLegend from "./BlockLegend.jsx";
 import LegoBlock from "./LegoBlock.jsx";
 
 export default function DragWordGame({
@@ -5,7 +6,6 @@ export default function DragWordGame({
   tray,
   onDropSlot,
   onDropTray,
-  instruction,
 }) {
   function allowDrop(event) {
     event.preventDefault();
@@ -13,8 +13,8 @@ export default function DragWordGame({
   }
 
   return (
-    <section className="build-area">
-      <p className="build-instruction">{instruction}</p>
+    <section className="build-area build-area--puzzle">
+      <BlockLegend />
       <div className="answer-row">
         {slots.map((letter, index) => (
           <div
@@ -27,7 +27,7 @@ export default function DragWordGame({
             }}
           >
             {letter ? (
-              <LegoBlock letter={letter} />
+              <LegoBlock letter={letter} draggable />
             ) : (
               <span className="answer-slot__placeholder">{index + 1}</span>
             )}
@@ -43,7 +43,7 @@ export default function DragWordGame({
         }}
       >
         {tray.length === 0 ? (
-          <p className="block-tray__empty">Alle blokjes liggen in het woord.</p>
+          <p className="block-tray__empty">Alle blokjes liggen op hun plek.</p>
         ) : (
           tray.map((letter) => <LegoBlock key={letter.id} letter={letter} />)
         )}

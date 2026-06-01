@@ -1,315 +1,207 @@
+import { useMemo } from "react";
 import DragWordGame from "../DragWordGame.jsx";
-import VoicePanel from "../VoicePanel.jsx";
+import BuddyOrb from "../BuddyOrb.jsx";
 import VowelGame from "../VowelGame.jsx";
-import { DIFFICULTIES, FAVORITE_BLOCKS, shuffle } from "../../data/lesson.js";
-import * as speech from "../../services/speech.js";
-import LegoBlock from "../LegoBlock.jsx";
+import ListenPrompt from "../ListenPrompt.jsx";
+import WordHero from "../WordHero.jsx";
+import { DIFFICULTIES, shuffle } from "../../data/lesson.js";
+import { SESSION_END_PARENT_NOTE } from "../../lib/lessonScript.js";
 
-export default function LessonView({
-  lesson,
-  config,
-  onEndSurvey,
-}) {
+function LessonShell({ buddy, children }) {
+  return (
+    <div className="lesson-shell">
+      {buddy}
+      <div className="lesson-shell__main">{children}</div>
+    </div>
+  );
+}
+
+export default function LessonView({ lesson, onRestart }) {
   const {
     step,
     taskPhase,
-    message,
-    loading,
-    source,
+    caption,
+    speaking,
     taskType,
     taskMeta,
     currentWord,
     wordIndex,
     wordQueue,
-    correctStreak,
     vowelChoice,
-    setVowelChoice,
+    selectVowel,
     tray,
     slots,
-    confidenceMode,
-    favoritePlaced,
-    setFavoritePlaced,
     canSubmit,
     pickDifficulty,
     submitAnswer,
     keepAnswer,
     changeAnswer,
     advanceWord,
-    setConfidenceMode,
     finishConfidence,
     handleDropSlot,
     handleDropTray,
     repeat,
     replayWord,
+    pendingLevelUp,
   } = lesson;
 
-  const vowelOptions = currentWord
-    ? shuffle([...currentWord.vowelOptions])
-    : [];
+  const buddy = (
+    <BuddyOrb caption={caption} speaking={speaking} onRepeat={repeat} />
+  );
+
+  const vowelOptions = useMemo(
+    () =>
+      currentWord ? shuffle([...currentWord.vowelOptions]) : [],
+    [currentWord?.word]
+  );
 
   const progressPct = wordQueue.length
-    ? Math.round(((wordIndex + (taskPhase === "feedback" ? 1 : 0)) / wordQueue.length) * 100)
+    ? Math.round(((wordIndex + 1) / wordQueue.length) * 100)
     : 0;
+
+  const isKlinker = taskType === "klinker-detective";
+  const isDrag = taskType === "blok-puzzel";
+  const showListenPrompt =
+    currentWord && step === "task" && taskPhase === "answer" && (isKlinker || isDrag);
+  const showWordHero =
+    currentWord && step === "task" && taskPhase === "feedback";
 
   if (step === "difficulty") {
     return (
-      <div className="lesson-child">
-        <VoicePanel
-          message={message}
-          loading={loading}
-          onRepeat={repeat}
-          aiSource={source}
-          voiceName={config?.tts?.voiceName}
-        />
-        <section className="lesson-card">
-          <p className="lesson-card__hint">Kies één optie</p>
-          <div className="choice-row">
+      <LessonShell buddy={buddy}>
+        <div className="kid-panel">
+          <p className="kid-step-label">Kies je niveau</p>
+          <div className="difficulty-grid">
             {DIFFICULTIES.map((d) => (
               <button
                 key={d.id}
                 type="button"
-                className="btn btn--choice"
-                disabled={loading}
+                className="btn btn--difficulty"
+                disabled={speaking}
                 onClick={() => pickDifficulty(d.id)}
               >
                 {d.label}
               </button>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </LessonShell>
     );
   }
 
   if (step === "confidence") {
     return (
-      <div className="lesson-child">
-        <VoicePanel
-          message={message}
-          loading={loading}
-          onRepeat={repeat}
-          aiSource={source}
-          voiceName={config?.tts?.voiceName}
-        />
-        <section className="lesson-card">
-          {confidenceMode === "choose" && (
-            <>
-              <h2 className="lesson-card__title">Even rustig</h2>
-              <div className="choice-row">
-                <button
-                  type="button"
-                  className="btn btn--choice"
-                  onClick={() => {
-                    setConfidenceMode("favorite");
-                    speech.speak("Klik op je favoriete blok.");
-                  }}
-                >
-                  Favoriete blok
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--choice"
-                  onClick={() => setConfidenceMode("quiz")}
-                >
-                  Klein woordspel
-                </button>
-              </div>
-            </>
-          )}
-          {confidenceMode === "favorite" && (
-            <>
-              <p className="lesson-card__hint">Sleep je favoriete blok naar het vak.</p>
-              <div className="favorite-tray">
-                {FAVORITE_BLOCKS.map((b) => (
-                  <LegoBlock key={b.id} letter={b} />
-                ))}
-              </div>
-              <div
-                className={`favorite-target ${favoritePlaced ? "favorite-target--done" : ""}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const id = e.dataTransfer.getData("application/letter-id");
-                  if (id?.startsWith("fav-")) setFavoritePlaced(true);
-                }}
-              >
-                {favoritePlaced ? "Mooi!" : "Hier"}
-              </div>
-              {favoritePlaced && (
-                <button type="button" className="btn btn--primary btn--large" onClick={finishConfidence}>
-                  Verder
-                </button>
-              )}
-            </>
-          )}
-          {confidenceMode === "quiz" && (
-            <>
-              <p className="lesson-card__hint">Welk woord begint met m?</p>
-              <div className="choice-row">
-                <button
-                  type="button"
-                  className="btn btn--choice"
-                  onClick={finishConfidence}
-                >
-                  maan
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--choice"
-                  onClick={finishConfidence}
-                >
-                  boom
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    );
-  }
-
-  if (step === "ai_intro") {
-    return (
-      <div className="lesson-child lesson-child--waiting">
-        <VoicePanel
-          message={message}
-          loading={loading}
-          onRepeat={repeat}
-          aiSource={source}
-          voiceName={config?.tts?.voiceName}
-        />
-        <p className="lesson-card__hint">Luister naar je oefenmaatje…</p>
-      </div>
+      <LessonShell buddy={buddy}>
+        <button
+          type="button"
+          className="btn btn--kid-primary"
+          disabled={speaking}
+          onClick={finishConfidence}
+        >
+          Verder oefenen
+        </button>
+      </LessonShell>
     );
   }
 
   if (step === "lesson_done") {
     return (
-      <div className="lesson-child">
-        <VoicePanel
-          message={message}
-          loading={loading}
-          onRepeat={repeat}
-          aiSource={source}
-          voiceName={config?.tts?.voiceName}
-        />
-        <button
-          type="button"
-          className="btn btn--primary btn--large"
-          onClick={onEndSurvey}
-        >
-          Naar vragenlijst
-        </button>
-      </div>
+      <LessonShell buddy={buddy}>
+        <p className="lesson-done-parent">{SESSION_END_PARENT_NOTE}</p>
+        {onRestart && (
+          <button type="button" className="btn btn--kid-secondary" onClick={onRestart}>
+            Opnieuw beginnen
+          </button>
+        )}
+      </LessonShell>
     );
   }
 
   return (
-    <div className="lesson-child">
+    <LessonShell buddy={buddy}>
       <header className="lesson-progress">
-        <span>{taskMeta?.label}</span>
+        <span className="lesson-progress__game">{taskMeta?.label}</span>
         <div className="lesson-progress__bar">
-          <div className="lesson-progress__fill" style={{ width: `${progressPct}%` }} />
+          <div
+            className="lesson-progress__fill"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
         <span className="lesson-progress__meta">
-          Woord {wordIndex + 1}/{wordQueue.length} · Reeks {correctStreak}
+          Woord {wordIndex + 1} van {wordQueue.length}
         </span>
       </header>
 
-      <VoicePanel
-        message={message}
-        loading={loading}
-        onRepeat={repeat}
-        aiSource={source}
-        voiceName={config?.tts?.voiceName}
-      />
-
       <section className="lesson-card">
+        {showListenPrompt && <ListenPrompt onReplay={replayWord} />}
+
+        {showWordHero && (
+          <WordHero word={currentWord.word} hint="Het woord was" onReplay={replayWord} highlight />
+        )}
+
         {taskPhase === "answer" && (
           <>
-            {taskType === "klinker-detective" && currentWord && (
+            {isKlinker && currentWord && (
               <VowelGame
-                word={currentWord.word}
                 options={vowelOptions}
                 selected={vowelChoice}
-                onSelect={setVowelChoice}
-                onReplay={replayWord}
+                onSelect={selectVowel}
               />
             )}
-            {taskType === "klank-volgorde" && (
+            {isDrag && (
               <DragWordGame
                 slots={slots}
                 tray={tray}
                 onDropSlot={handleDropSlot}
                 onDropTray={handleDropTray}
-                instruction="Zet de klanken in de goede volgorde."
               />
             )}
-            {taskType === "woord-bouwen" && (
-              <DragWordGame
-                slots={slots}
-                tray={tray}
-                onDropSlot={handleDropSlot}
-                onDropTray={handleDropTray}
-                instruction="Sleep de blokjes. Rood = medeklinker, wit = klinker."
-              />
-            )}
-            <div className="lesson-actions">
-              {taskType === "klinker-detective" && (
-                <button type="button" className="btn btn--ghost" onClick={replayWord}>
-                  Woord nog eens
-                </button>
-              )}
-              <button
-                type="button"
-                className="btn btn--primary btn--large"
-                disabled={!canSubmit || loading}
-                onClick={submitAnswer}
-              >
-                Klaar
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn--kid-primary"
+              disabled={!canSubmit || speaking}
+              onClick={submitAnswer}
+            >
+              Klaar
+            </button>
           </>
         )}
 
-        {taskPhase === "reflect_choice" && (
-          <div className="lesson-actions lesson-actions--stack">
+        {taskPhase === "reflect" && (
+          <div className="reflect-box">
             <button
               type="button"
-              className="btn btn--primary btn--large"
-              disabled={loading}
+              className="btn btn--kid-primary"
+              disabled={speaking}
               onClick={keepAnswer}
             >
-              Ik blijf bij mijn antwoord
+              Ja, dit klopt
             </button>
             <button
               type="button"
-              className="btn btn--secondary btn--large"
+              className="btn btn--kid-secondary"
               onClick={changeAnswer}
             >
-              Ik wil veranderen
+              Ik wil iets veranderen
             </button>
           </div>
         )}
 
         {taskPhase === "feedback" && (
-          <div className="lesson-actions">
-            <button
-              type="button"
-              className="btn btn--primary btn--large"
-              disabled={loading}
-              onClick={async () => {
-                const done = await advanceWord();
-                if (done) onEndSurvey();
-              }}
-            >
-              {wordIndex >= wordQueue.length - 1 && !lesson.pendingLevelUp
+          <button
+            type="button"
+            className="btn btn--kid-primary"
+            disabled={speaking}
+            onClick={() => advanceWord()}
+          >
+            {pendingLevelUp
+              ? "Blok-puzzel →"
+              : wordIndex >= wordQueue.length - 1
                 ? "Afronden"
-                : "Volgende"}
-            </button>
-          </div>
+                : "Volgend woord →"}
+          </button>
         )}
       </section>
-    </div>
+    </LessonShell>
   );
 }
