@@ -20,11 +20,18 @@ function getProvider() {
 
 export function getTtsConfig() {
   const provider = getProvider();
+  const voiceName =
+    provider === "browser"
+      ? "Browser (Nederlands)"
+      : provider === "google"
+        ? env("GOOGLE_TTS_VOICE") || "nl-NL-Wavenet-A"
+        : env("AZURE_SPEECH_VOICE") || "nl-NL-FennaNeural";
+
   return {
     provider,
     hasExternalTts: provider !== "browser",
     voiceId: null,
-    voiceName: provider === "browser" ? "Browser (Nederlands)" : null,
+    voiceName,
   };
 }
 
@@ -71,11 +78,16 @@ async function googleTts(text) {
   );
 
   if (!response.ok) {
-    throw new Error(`Google TTS failed: ${response.status}`);
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `Google TTS failed: ${response.status}${detail ? ` — ${detail.slice(0, 200)}` : ""}`
+    );
   }
 
   const data = await response.json();
-  return Buffer.from(data.audioContent, "base64");
+  const audio = Buffer.from(data.audioContent, "base64");
+  if (!audio.length) throw new Error("Google TTS returned empty audio");
+  return audio;
 }
 
 function escapeXml(text) {

@@ -6,10 +6,24 @@ import { PARENT_LANDING } from "./lib/lessonScript.js";
 import { fetchConfig } from "./services/ai.js";
 import * as speech from "./services/speech.js";
 
+async function loadAndApplyConfig(setAiEnabled, setVoiceLabel) {
+  const cfg = await fetchConfig();
+  speech.configureSpeech(cfg);
+  if (cfg.ai) setAiEnabled(true);
+  const tts = speech.getSpeechConfig();
+  setVoiceLabel(
+    tts.hasExternalTts
+      ? `Cloud-stem: ${tts.voiceName || tts.provider}`
+      : "Stem: browser (varieert per apparaat)"
+  );
+  return cfg;
+}
+
 export default function App() {
   const [screen, setScreen] = useState("intro");
   const [configLoading, setConfigLoading] = useState(true);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [voiceLabel, setVoiceLabel] = useState("");
 
   const lesson = useLesson({ aiEnabled });
 
@@ -18,11 +32,8 @@ export default function App() {
     async function loadConfig() {
       for (let i = 0; i < 5; i += 1) {
         try {
-          const cfg = await fetchConfig();
-          if (cfg.ai) {
-            setAiEnabled(true);
-            return;
-          }
+          await loadAndApplyConfig(setAiEnabled, setVoiceLabel);
+          return;
         } catch {
           /* retry */
         }
@@ -33,6 +44,8 @@ export default function App() {
   }, []);
 
   async function handleStart() {
+    await speech.unlockAudioPlayback();
+    await loadAndApplyConfig(setAiEnabled, setVoiceLabel);
     setScreen("lesson");
     await lesson.startLesson();
   }
@@ -59,6 +72,9 @@ export default function App() {
             >
               {configLoading ? "Laden…" : "Start — voor het kind"}
             </button>
+            {voiceLabel && !configLoading && (
+              <p className="parent-landing__voice">{voiceLabel}</p>
+            )}
           </div>
         </main>
       </div>

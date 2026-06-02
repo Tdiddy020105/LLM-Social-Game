@@ -164,6 +164,13 @@ button {
   margin-top: 10px;
 }
 
+.parent-landing__voice {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--kid-text-muted);
+  text-align: center;
+}
+
 .app--landing .btn--large {
   width: 100%;
 }

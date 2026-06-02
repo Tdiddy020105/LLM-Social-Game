@@ -43,3 +43,4 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 console.log("Starting client (Vite) + API server…");
+console.log("API: http://localhost:3001  (TTS needs this — do not run only Vite)");

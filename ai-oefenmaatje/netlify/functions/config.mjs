@@ -1,3 +1,5 @@
+import { getTtsConfig } from "../../server/tts.js";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -10,16 +12,10 @@ export default async (request) => {
   }
 
   const ai = Boolean(process.env.GOOGLE_GENAI_API_KEY?.trim());
+  const tts = getTtsConfig();
 
   return new Response(
-    JSON.stringify({
-      ai,
-      tts: {
-        provider: "browser",
-        hasExternalTts: false,
-        voiceName: "Browser (Nederlands)",
-      },
-    }),
+    JSON.stringify({ ai, tts }),
     {
       status: 200,
       headers: { ...cors, "Content-Type": "application/json" },

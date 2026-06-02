@@ -73,5 +73,5 @@ app.post("/api/tts", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
   console.log(`GenAI: ${aiEnabled() ? "enabled" : "fallback mode"}`);
-  console.log(`TTS: ${getTtsConfig().provider} (app uses browser voice by default)`);
+  console.log(`TTS: ${getTtsConfig().provider} (${getTtsConfig().voiceName})`);
 });

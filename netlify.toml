@@ -1,4 +1,6 @@
+# Monorepo: the Oefenmaatje app lives in ai-oefenmaatje/
 [build]
+  base = "ai-oefenmaatje"
   command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
@@ -9,7 +11,6 @@
 [functions.tts]
   timeout = 26
 
-# API (Gemini feedback)
 [[redirects]]
   from = "/api/chat"
   to = "/.netlify/functions/chat"
@@ -25,7 +26,6 @@
   to = "/.netlify/functions/tts"
   status = 200
 
-# SPA — must be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
