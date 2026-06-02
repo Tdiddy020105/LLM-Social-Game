@@ -1,17 +1,9 @@
-export default function ListenPrompt({ onReplay, compact = false }) {
+import { LISTEN_PROMPT_LINE } from "../lib/lessonScript.js";
+
+export default function ListenPrompt() {
   return (
-    <div
-      className={`listen-prompt${compact ? " listen-prompt--compact" : ""}`}
-      aria-label="Luister naar het woord"
-    >
-      <p className="listen-prompt__text">
-        Luister goed. Het woord staat niet op je scherm.
-      </p>
-      {!compact && (
-        <button type="button" className="btn btn--kid-secondary" onClick={onReplay}>
-          Woord nog een keer horen
-        </button>
-      )}
+    <div className="listen-prompt listen-prompt--compact" aria-label="Luister naar het woord">
+      <p className="listen-prompt__text">{LISTEN_PROMPT_LINE.line}</p>
     </div>
   );
 }

@@ -19,7 +19,7 @@ import {
   taskHint,
 } from "../lib/lessonScript.js";
 import { getLessonFallback } from "../lib/lessonFallbacks.js";
-import { askCompanion } from "../services/ai.js";
+import { splitSpeechChunks } from "../lib/speechChunks.js";
 import * as speech from "../services/speech.js";
 
 function lineText(line) {
@@ -53,12 +53,16 @@ function fallbackForPhase(phase, taskType, { mistakeCount, correct } = {}) {
 }
 
 export function useLesson({ aiEnabled = false } = {}) {
+  void aiEnabled;
+
   const [step, setStep] = useState("difficulty");
   const [taskPhase, setTaskPhase] = useState("answer");
   const [caption, setCaption] = useState("");
   const [speaking, setSpeaking] = useState(false);
 
   const lastSpokenRef = useRef("");
+  const lastMaskWordsRef = useRef([]);
+  const taskInstructionRef = useRef("");
   const lessonStartedRef = useRef(false);
   const blockLegendSpokenRef = useRef(false);
 
@@ -74,6 +78,7 @@ export function useLesson({ aiEnabled = false } = {}) {
   const [slots, setSlots] = useState([]);
 
   const [pendingLevelUp, setPendingLevelUp] = useState(false);
+  const [taskInstruction, setTaskInstruction] = useState("");
 
   const currentWord = wordQueue[wordIndex];
   const taskMeta = TASK_TYPES.find((t) => t.id === taskType);
@@ -82,13 +87,31 @@ export function useLesson({ aiEnabled = false } = {}) {
     const line = text?.trim();
     if (!line) return;
     lastSpokenRef.current = line;
-    const displayLine =
-      maskWords?.length > 0 ? maskWordInText(line, maskWords) : line;
-    setCaption(displayLine);
+    lastMaskWordsRef.current = maskWords ?? [];
+    const chunks = splitSpeechChunks(line);
+    if (interrupt) speech.interruptSpeech();
+
     setSpeaking(true);
-    await speech.speakAndWait(line, { interrupt });
+    for (const chunk of chunks) {
+      const displayChunk =
+        maskWords?.length > 0 ? maskWordInText(chunk, maskWords) : chunk;
+      setCaption(displayChunk);
+      await speech.speakAndWait(chunk);
+    }
     setSpeaking(false);
   }, []);
+
+  const speakInstruction = useCallback(
+    async (text, options = {}) => {
+      const line = text?.trim();
+      if (line) {
+        taskInstructionRef.current = line;
+        setTaskInstruction(line);
+      }
+      await speakCaption(line, options);
+    },
+    [speakCaption]
+  );
 
   const speakWord = useCallback(
     async (word, { interrupt = false } = {}) => {
@@ -99,51 +122,16 @@ export function useLesson({ aiEnabled = false } = {}) {
     [speakCaption]
   );
 
-  const buildContext = useCallback(
-    (phase, extra = {}) => {
-      const hideWord =
-        taskType === "klinker-detective" &&
-        (taskPhase === "answer" || phase === "feedback_wrong");
-      const includeVowel =
-        phase !== "feedback_wrong" || taskType !== "klinker-detective";
-
-      return {
-        phase,
-        taskType,
-        difficulty,
-        word: currentWord?.word,
-        vowel: includeVowel ? currentWord?.vowel : undefined,
-        hideWord,
-        mistakeCount: extra.mistakeCount ?? mistakeCount,
-        correctStreak,
-        correct: extra.correct,
-      };
-    },
-    [taskType, taskPhase, difficulty, currentWord, mistakeCount, correctStreak]
-  );
-
-  /** Gemini for feedback; scripted fallback if offline or no API key. */
   const sayPhase = useCallback(
     async (phase, extra = {}, { interrupt = false } = {}) => {
-      const fallback = fallbackForPhase(phase, taskType, extra);
+      const line = fallbackForPhase(phase, taskType, extra);
       const maskWords =
         shouldMaskWordOnScreen(taskType, taskPhase, step) && currentWord?.word
           ? [currentWord.word]
           : [];
-
-      if (!aiEnabled) {
-        await speakCaption(fallback, { interrupt, maskWords });
-        return;
-      }
-
-      try {
-        const { text } = await askCompanion(buildContext(phase, extra));
-        await speakCaption(text?.trim() || fallback, { interrupt, maskWords });
-      } catch {
-        await speakCaption(fallback, { interrupt, maskWords });
-      }
+      await speakCaption(line, { interrupt, maskWords });
     },
-    [aiEnabled, buildContext, speakCaption, taskType, taskPhase, step, currentWord]
+    [speakCaption, taskType, taskPhase, step, currentWord]
   );
 
   const resetTaskUI = useCallback((word) => {
@@ -158,6 +146,8 @@ export function useLesson({ aiEnabled = false } = {}) {
   const resetLesson = useCallback(() => {
     lessonStartedRef.current = false;
     blockLegendSpokenRef.current = false;
+    taskInstructionRef.current = "";
+    setTaskInstruction("");
     setStep("difficulty");
     setTaskPhase("answer");
     setCaption("");
@@ -178,9 +168,9 @@ export function useLesson({ aiEnabled = false } = {}) {
     if (lessonStartedRef.current) return;
     lessonStartedRef.current = true;
     setStep("difficulty");
-    await speakCaption(KID_INTRO_LINE.line, { interrupt: true });
-    await speakCaption(DIFFICULTY_LINE.line);
-  }, [speakCaption]);
+    await speakInstruction(KID_INTRO_LINE.line, { interrupt: true });
+    await speakInstruction(DIFFICULTY_LINE.line);
+  }, [speakInstruction]);
 
   const pickDifficulty = useCallback(
     async (level) => {
@@ -194,16 +184,15 @@ export function useLesson({ aiEnabled = false } = {}) {
       setPendingLevelUp(false);
       resetTaskUI(first);
       setStep("task");
-      await speakCaption(lineText(taskHint("klinker-detective")));
+      await speakInstruction(lineText(taskHint("klinker-detective")));
       await speakWord(first.word);
     },
-    [resetTaskUI, speakCaption, speakWord]
+    [resetTaskUI, speakInstruction, speakWord]
   );
 
-  const startConfidenceBreak = useCallback(async () => {
+  const startConfidenceBreak = useCallback(() => {
     setStep("confidence");
-    await speakCaption(CONFIDENCE_LINE.line);
-  }, [speakCaption]);
+  }, []);
 
   const checkAnswer = useCallback(async () => {
     if (!currentWord) return;
@@ -232,7 +221,7 @@ export function useLesson({ aiEnabled = false } = {}) {
 
     if (nextMistake >= 3) {
       await sayPhase("confidence_start", { correct: false, mistakeCount: 3 });
-      await startConfidenceBreak();
+      startConfidenceBreak();
       return;
     }
 
@@ -273,9 +262,9 @@ export function useLesson({ aiEnabled = false } = {}) {
     setStep("task");
     setMistakeCount(0);
     resetTaskUI(currentWord);
-    await speakCaption(lineText(taskHint(taskType)));
+    await speakInstruction(lineText(taskHint(taskType)));
     await speakWord(currentWord.word);
-  }, [currentWord, taskType, resetTaskUI, speakCaption, speakWord]);
+  }, [currentWord, taskType, resetTaskUI, speakInstruction, speakWord]);
 
   const advanceWord = useCallback(async () => {
     if (pendingLevelUp) {
@@ -286,9 +275,10 @@ export function useLesson({ aiEnabled = false } = {}) {
       resetTaskUI(wordData);
       if (isDragTask(nextType) && !blockLegendSpokenRef.current) {
         blockLegendSpokenRef.current = true;
-        await speakCaption(BLOCK_LEGEND_LINE.line);
+        await speakInstruction(BLOCK_LEGEND_LINE.line);
       }
-      await speakCaption(lineText(levelHint()));
+      await speakInstruction(lineText(levelHint()));
+      await speakInstruction(lineText(taskHint(nextType)));
       await speakWord(wordData.word);
       return;
     }
@@ -311,6 +301,7 @@ export function useLesson({ aiEnabled = false } = {}) {
     wordQueue,
     resetTaskUI,
     sayPhase,
+    speakInstruction,
     speakWord,
   ]);
 
@@ -325,6 +316,19 @@ export function useLesson({ aiEnabled = false } = {}) {
       speech.speakAndWait(vowelSpeakText(grapheme), { interrupt: true });
     }
   }, []);
+
+  const repeat = useCallback(() => {
+    if (!lastSpokenRef.current) return Promise.resolve();
+    return speakCaption(lastSpokenRef.current, {
+      interrupt: true,
+      maskWords: lastMaskWordsRef.current,
+    });
+  }, [speakCaption]);
+
+  const repeatInstruction = useCallback(() => {
+    if (!taskInstructionRef.current) return Promise.resolve();
+    return speakCaption(taskInstructionRef.current, { interrupt: true });
+  }, [speakCaption]);
 
   return {
     step,
@@ -342,6 +346,7 @@ export function useLesson({ aiEnabled = false } = {}) {
     slots,
     pendingLevelUp,
     canSubmit,
+    taskInstruction,
     resetLesson,
     startLesson,
     pickDifficulty,
@@ -379,12 +384,8 @@ export function useLesson({ aiEnabled = false } = {}) {
         return next;
       });
     },
-    repeat: () => {
-      if (lastSpokenRef.current) {
-        return speech.repeatLast(lastSpokenRef.current);
-      }
-      return Promise.resolve();
-    },
+    repeat,
+    repeatInstruction,
     replayWord: () => currentWord && speakWord(currentWord.word, { interrupt: true }),
   };
 }

@@ -1,4 +1,4 @@
-export default function LegoBlock({ letter, draggable = true, hideLabel = true }) {
+export default function LegoBlock({ letter, draggable = true, hideLabel = true, showOrder }) {
   const className =
     letter.type === "consonant"
       ? "lego-block lego-block--consonant"
@@ -26,6 +26,11 @@ export default function LegoBlock({ letter, draggable = true, hideLabel = true }
         <span className="lego-block__label">{letter.text}</span>
       ) : (
         <span className="lego-block__hint" aria-hidden="true" />
+      )}
+      {showOrder != null && (
+        <span className="lego-block__order" aria-hidden="true">
+          {showOrder}
+        </span>
       )}
     </div>
   );

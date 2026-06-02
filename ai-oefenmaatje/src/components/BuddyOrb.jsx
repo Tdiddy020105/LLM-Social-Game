@@ -1,4 +1,13 @@
-export default function BuddyOrb({ caption, speaking, onRepeat }) {
+export default function BuddyOrb({
+  caption,
+  speaking,
+  onRepeat,
+  repeatLabel = "Nog een keer horen",
+  onRepeatInstruction,
+  onRepeatWord,
+}) {
+  const showActions = caption && !speaking;
+
   return (
     <div className="buddy-maatje" aria-live="polite">
       <div
@@ -13,10 +22,32 @@ export default function BuddyOrb({ caption, speaking, onRepeat }) {
         {caption || (speaking ? "…" : "")}
       </p>
 
-      {caption && !speaking && onRepeat && (
-        <button type="button" className="btn btn--soft btn--repeat" onClick={onRepeat}>
-          Nog een keer horen
-        </button>
+      {showActions && (onRepeatInstruction || onRepeatWord || onRepeat) && (
+        <div className="buddy-maatje__actions">
+          {onRepeatInstruction && (
+            <button
+              type="button"
+              className="btn btn--soft btn--repeat"
+              onClick={onRepeatInstruction}
+            >
+              Uitleg nog een keer
+            </button>
+          )}
+          {onRepeatWord && (
+            <button
+              type="button"
+              className="btn btn--soft btn--repeat"
+              onClick={onRepeatWord}
+            >
+              Woord nog een keer horen
+            </button>
+          )}
+          {onRepeat && !onRepeatInstruction && !onRepeatWord && (
+            <button type="button" className="btn btn--soft btn--repeat" onClick={onRepeat}>
+              {repeatLabel}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,49 +1,37 @@
-const MESSAGES = {
-  lesson_intro:
-    "Hoi, ik ben je oefenmaatje. We gaan samen woorden oefenen. Je hoeft het niet meteen goed te doen. We denken samen na.",
-  difficulty_ask: "Wil je makkelijk, normaal of moeilijk beginnen?",
-  task_klinker:
-    "We spelen Klinker Detective. Luister naar het woord. Welke klinker zit in het midden?",
-  task_klank: "Nu Klank volgorde. Zet de klanken in de goede volgorde.",
-  task_woord: "Nu Woord bouwen. Sleep de blokjes om het woord te maken.",
-  reflect_certain: "Ben je zeker?",
-  reflect_slow_prefix: "Zeg het woord eens langzaam:",
-  reflect_slow_suffix: "Welke klank hoor je in het midden?",
-  feedback_correct:
-    "Mooi. Je hebt goed geluisterd naar de klank in het woord.",
+/** Server fallbacks — kept in sync with src/lib/lessonScript.js + lessonFallbacks.js */
+
+const LINES = {
+  difficulty_ask: "Kies makkelijk, normaal of moeilijk.",
+  reflect_certain: "Ben je zeker van je antwoord? Kies hieronder.",
+  task_klinker: "Luister naar het woord. Kies de klinker in het midden.",
+  task_blok:
+    "Luister naar het woord. Sleep de blokjes in de vakjes. Wit en rood, van links naar rechts.",
+  level_up: "Goed gedaan! Nu de blok-puzzel met hetzelfde woord.",
+  feedback_correct: "Goed gedaan!",
   feedback_wrong_1: "Bijna. Luister nog eens goed naar het midden van het woord.",
-  feedback_wrong_3:
-    "Dat is lastig. We doen eerst een makkelijke ronde en komen straks terug.",
-  confidence_start:
-    "Dat is niet erg. We doen even iets makkelijks om weer vertrouwen te krijgen.",
-  confidence_done: "Goed. Je bent weer op gang. We proberen het vorige woord nog eens.",
-  level_up: "Zullen we een stapje moeilijker proberen?",
-  session_end:
-    "Bedankt voor het oefenen. Je ouder mag nu even vragen invullen.",
+  feedback_wrong_2: "Bijna! Luister nog een keer.",
+  feedback_wrong_3: "Even rustig. Daarna proberen we opnieuw.",
+  confidence_start: "Even rustig. Daarna proberen we opnieuw.",
+  session_end: "Super gedaan! Tot de volgende keer!",
 };
 
 export function getLessonFallback(context) {
-  const { phase, word, mistakeCount, taskType, vowel, slowSpelling } = context;
-
-  if (phase === "reflect_slow" && word) {
-    const slow = slowSpelling || word;
-    return `${MESSAGES.reflect_slow_prefix} ${slow}. ${MESSAGES.reflect_slow_suffix}`;
-  }
-
-  if (phase === "feedback_wrong" && mistakeCount === 2 && vowel) {
-    return `De middelste klank klinkt als '${vowel}'. Kun je die vinden?`;
-  }
+  const { phase, taskType, mistakeCount } = context;
 
   if (phase === "task_explain") {
-    if (taskType === "klinker-detective") return MESSAGES.task_klinker;
-    if (taskType === "klank-volgorde") return MESSAGES.task_klank;
-    if (taskType === "woord-bouwen") return MESSAGES.task_woord;
+    if (taskType === "klinker-detective") return LINES.task_klinker;
+    if (taskType === "blok-puzzel") return LINES.task_blok;
   }
-
+  if (phase === "level_up") return LINES.level_up;
+  if (phase === "feedback_correct") return LINES.feedback_correct;
   if (phase === "feedback_wrong" && mistakeCount) {
     const key = `feedback_wrong_${Math.min(mistakeCount, 3)}`;
-    if (MESSAGES[key]) return MESSAGES[key];
+    if (LINES[key]) return LINES[key];
   }
+  if (phase === "confidence_start") return LINES.confidence_start;
+  if (phase === "session_end") return LINES.session_end;
+  if (phase === "difficulty_ask") return LINES.difficulty_ask;
+  if (phase === "reflect_certain") return LINES.reflect_certain;
 
-  return MESSAGES[phase] || "Laten we verder gaan.";
+  return "Laten we verder gaan.";
 }

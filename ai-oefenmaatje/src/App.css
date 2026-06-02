@@ -703,6 +703,79 @@ button {
   text-transform: lowercase;
 }
 
+.lego-block__order {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(42, 56, 40, 0.75);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.puzzle-instruction {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--kid-text);
+}
+
+.puzzle-instruction strong {
+  color: var(--kid-accent-dark);
+}
+
+.puzzle-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.puzzle-target__label,
+.puzzle-source__label {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--kid-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.puzzle-target__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--kid-text-muted);
+}
+
+.puzzle-source {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.puzzle-source__count {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.block-legend__count {
+  width: 100%;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--kid-accent-dark);
+}
+
 .lego-block--small .lego-block__label {
   display: none;
 }
@@ -1785,6 +1858,20 @@ button {
   margin-top: 4px;
 }
 
+.buddy-maatje__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.buddy-maatje__actions .btn--repeat {
+  margin-top: 0;
+  max-width: 100%;
+}
+
 @keyframes buddy-bounce {
   0%,
   100% {
@@ -2145,6 +2232,29 @@ button {
   gap: clamp(8px, 2.5vw, 16px);
 }
 
+.answer-row--count-4 {
+  gap: clamp(6px, 2vw, 12px);
+}
+
+.child-area--lesson .answer-row--count-4 .answer-slot {
+  width: clamp(44px, 14vw, 72px);
+  min-height: clamp(48px, 12vw, 60px);
+}
+
+.lesson-card--blocks .answer-row--count-4 {
+  gap: clamp(4px, 1.5vw, 8px);
+}
+
+.lesson-card--blocks .answer-row--count-4 .answer-slot {
+  width: clamp(36px, 10vw, 52px);
+  min-height: 36px;
+}
+
+.lesson-card--blocks .answer-row--count-4 .lego-block {
+  min-width: 36px;
+  height: 32px;
+}
+
 .child-area--lesson .answer-slot--filled {
   background: var(--kid-surface);
   box-shadow: var(--kid-shadow-soft);
@@ -2237,14 +2347,33 @@ button {
   flex: 1;
   min-height: 0;
   gap: 6px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .lesson-card--blocks .build-area--puzzle {
   flex: 1;
   min-height: 0;
   gap: 6px;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.lesson-card--blocks .puzzle-instruction {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+
+.lesson-card--blocks .puzzle-target__label,
+.lesson-card--blocks .puzzle-source__label {
+  font-size: 0.72rem;
+}
+
+.lesson-card--blocks .puzzle-target__hint {
+  font-size: 0.72rem;
+}
+
+.lesson-card--blocks .block-legend__count {
+  font-size: 0.72rem;
 }
 
 .lesson-card--blocks .block-legend {
@@ -2275,11 +2404,17 @@ button {
 }
 
 .lesson-card--blocks .block-tray {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 44px;
   padding: 8px;
   gap: 8px;
   align-content: center;
+  overflow: visible;
+  flex-wrap: wrap;
+}
+
+.lesson-card--blocks .puzzle-source {
+  flex-shrink: 0;
 }
 
 .lesson-card--blocks .lego-block {

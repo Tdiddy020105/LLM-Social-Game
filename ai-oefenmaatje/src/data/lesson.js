@@ -1,4 +1,4 @@
-import { WORDS, buildTray, emptySlots, shuffle } from "./words.js";
+import { WORDS, buildLettersFromSpelling, buildTray, emptySlots, shuffle } from "./words.js";
 
 export const DIFFICULTIES = [
   { id: "makkelijk", label: "Makkelijk" },
@@ -27,7 +27,12 @@ export const FAVORITE_BLOCKS = [
 ];
 
 export function getWordData(word) {
-  return WORDS.find((w) => w.word === word);
+  const entry = WORDS.find((w) => w.word === word);
+  if (!entry) return undefined;
+  return {
+    ...entry,
+    letters: buildLettersFromSpelling(entry.word),
+  };
 }
 
 export function buildWordQueue(difficulty) {
@@ -95,9 +100,10 @@ export function dragPatternMatches(slots, wordData) {
 export function initDragState(word) {
   const data = getWordData(word);
   if (!data) return { tray: [], slots: [] };
+  const letters = data.letters;
   return {
-    tray: buildTray(data.letters),
-    slots: emptySlots(data.letters.length),
+    tray: buildTray(letters),
+    slots: emptySlots(letters.length),
   };
 }
 

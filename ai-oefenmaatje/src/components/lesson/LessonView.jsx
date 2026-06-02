@@ -41,13 +41,11 @@ export default function LessonView({ lesson, onRestart }) {
     handleDropSlot,
     handleDropTray,
     repeat,
+    repeatInstruction,
     replayWord,
+    taskInstruction,
     pendingLevelUp,
   } = lesson;
-
-  const buddy = (
-    <BuddyOrb caption={caption} speaking={speaking} onRepeat={repeat} />
-  );
 
   const vowelOptions = useMemo(
     () =>
@@ -66,6 +64,21 @@ export default function LessonView({ lesson, onRestart }) {
   const showWordHero =
     currentWord && step === "task" && taskPhase === "feedback";
   const isBlockPlay = isDrag && step === "task" && taskPhase === "answer";
+  const inListenTask =
+    step === "task" && currentWord && (taskPhase === "answer" || taskPhase === "feedback");
+  const showTaskRepeats = step === "task" && taskPhase === "answer" && taskInstruction;
+  const showRepeatLast =
+    taskPhase === "feedback" || (!showTaskRepeats && !inListenTask);
+
+  const buddy = (
+    <BuddyOrb
+      caption={caption}
+      speaking={speaking}
+      onRepeat={showRepeatLast ? repeat : undefined}
+      onRepeatInstruction={showTaskRepeats ? repeatInstruction : undefined}
+      onRepeatWord={inListenTask ? replayWord : undefined}
+    />
+  );
 
   if (step === "difficulty") {
     return (
@@ -134,10 +147,10 @@ export default function LessonView({ lesson, onRestart }) {
       </header>
 
       <section className={`lesson-card${isBlockPlay ? " lesson-card--blocks" : ""}`}>
-        {showListenPrompt && <ListenPrompt onReplay={replayWord} compact={isBlockPlay} />}
+        {showListenPrompt && <ListenPrompt />}
 
         {showWordHero && (
-          <WordHero word={currentWord.word} hint="Het woord was" onReplay={replayWord} highlight />
+          <WordHero word={currentWord.word} hint="Het woord was" highlight />
         )}
 
         {taskPhase === "answer" && (

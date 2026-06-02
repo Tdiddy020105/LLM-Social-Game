@@ -1,7 +1,6 @@
 export default function WordHero({
   word,
   hint,
-  onReplay,
   highlight = false,
   compact = false,
 }) {
@@ -16,15 +15,6 @@ export default function WordHero({
       <p className="word-hero__word" lang="nl">
         {word}
       </p>
-      {onReplay && (
-        <button
-          type="button"
-          className="btn btn--kid-secondary btn--replay-word"
-          onClick={onReplay}
-        >
-          Woord nog een keer horen
-        </button>
-      )}
     </div>
   );
 }

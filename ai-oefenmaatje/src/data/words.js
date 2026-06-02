@@ -16,59 +16,68 @@ export const GAMES = [
   },
 ];
 
-export const WORDS = [
+const VOWEL_LETTERS = new Set(["a", "e", "i", "o", "u"]);
+
+function letterType(char) {
+  return VOWEL_LETTERS.has(char.toLowerCase()) ? "vowel" : "consonant";
+}
+
+/** One lego block per spelling letter — boom → b, o, o, m (4 blocks). */
+export function buildLettersFromSpelling(word) {
+  const chars = word.split("");
+  const totals = {};
+
+  for (const char of chars) {
+    const key = char.toLowerCase();
+    totals[key] = (totals[key] ?? 0) + 1;
+  }
+
+  const seen = {};
+  return chars.map((char) => {
+    const key = char.toLowerCase();
+    seen[key] = (seen[key] ?? 0) + 1;
+    const idPart = totals[key] > 1 ? String(seen[key]) : key;
+
+    return {
+      id: `${word}-${idPart}`,
+      text: char,
+      type: letterType(char),
+    };
+  });
+}
+
+const WORD_DEFS = [
   {
     word: "boom",
     vowel: "oo",
-    letters: [
-      { id: "boom-b", text: "b", type: "consonant" },
-      { id: "boom-oo", text: "oo", type: "vowel" },
-      { id: "boom-m", text: "m", type: "consonant" },
-    ],
     vowelOptions: ["oo", "o", "ee", "aa"],
   },
   {
     word: "maan",
     vowel: "aa",
-    letters: [
-      { id: "maan-m", text: "m", type: "consonant" },
-      { id: "maan-a1", text: "a", type: "vowel" },
-      { id: "maan-a2", text: "a", type: "vowel" },
-      { id: "maan-n", text: "n", type: "consonant" },
-    ],
     vowelOptions: ["aa", "a", "oo", "ee"],
   },
   {
     word: "vis",
     vowel: "i",
-    letters: [
-      { id: "vis-v", text: "v", type: "consonant" },
-      { id: "vis-i", text: "i", type: "vowel" },
-      { id: "vis-s", text: "s", type: "consonant" },
-    ],
     vowelOptions: ["i", "ie", "ee", "a"],
   },
   {
     word: "raam",
     vowel: "aa",
-    letters: [
-      { id: "raam-r", text: "r", type: "consonant" },
-      { id: "raam-aa", text: "aa", type: "vowel" },
-      { id: "raam-m", text: "m", type: "consonant" },
-    ],
     vowelOptions: ["aa", "a", "oo", "ee"],
   },
   {
     word: "tak",
     vowel: "a",
-    letters: [
-      { id: "tak-t", text: "t", type: "consonant" },
-      { id: "tak-a", text: "a", type: "vowel" },
-      { id: "tak-k", text: "k", type: "consonant" },
-    ],
     vowelOptions: ["a", "aa", "o", "e"],
   },
 ];
+
+export const WORDS = WORD_DEFS.map((def) => ({
+  ...def,
+  letters: buildLettersFromSpelling(def.word),
+}));
 
 export const EASY_WORDS = ["vis", "tak"];
 
@@ -89,7 +98,20 @@ export function shuffle(list) {
 }
 
 export function buildTray(letters) {
-  return shuffle(letters.map((letter) => ({ ...letter })));
+  const vowelTotal = letters.filter((l) => l.type === "vowel").length;
+  let vowelIndex = 0;
+
+  return shuffle(
+    letters.map((letter) => {
+      if (letter.type !== "vowel") return { ...letter };
+
+      vowelIndex += 1;
+      return {
+        ...letter,
+        vowelOrdinal: vowelTotal > 1 ? vowelIndex : undefined,
+      };
+    })
+  );
 }
 
 export function emptySlots(count) {
