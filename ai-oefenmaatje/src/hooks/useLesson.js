@@ -5,6 +5,7 @@ import {
   buildWordQueue,
   dragPatternMatches,
   initDragState,
+  maskWordInText,
   vowelSpeakText,
   wordTtsText,
 } from "../data/lesson.js";
@@ -34,6 +35,12 @@ function nextTaskType(current) {
 
 function isDragTask(type) {
   return type === "blok-puzzel";
+}
+
+function shouldMaskWordOnScreen(taskType, taskPhase, step) {
+  if (step !== "task") return false;
+  if (taskPhase === "feedback") return false;
+  return taskType === "klinker-detective" || isDragTask(taskType);
 }
 
 function fallbackForPhase(phase, taskType, { mistakeCount, correct } = {}) {
@@ -71,11 +78,13 @@ export function useLesson({ aiEnabled = false } = {}) {
   const currentWord = wordQueue[wordIndex];
   const taskMeta = TASK_TYPES.find((t) => t.id === taskType);
 
-  const speakCaption = useCallback(async (text, { interrupt = false } = {}) => {
+  const speakCaption = useCallback(async (text, { interrupt = false, maskWords } = {}) => {
     const line = text?.trim();
     if (!line) return;
     lastSpokenRef.current = line;
-    setCaption(line);
+    const displayLine =
+      maskWords?.length > 0 ? maskWordInText(line, maskWords) : line;
+    setCaption(displayLine);
     setSpeaking(true);
     await speech.speakAndWait(line, { interrupt });
     setSpeaking(false);
@@ -85,7 +94,7 @@ export function useLesson({ aiEnabled = false } = {}) {
     async (word, { interrupt = false } = {}) => {
       if (!word) return;
       const phrase = wordTtsText(word);
-      await speakCaption(phrase, { interrupt });
+      await speakCaption(phrase, { interrupt, maskWords: [word] });
     },
     [speakCaption]
   );
@@ -117,20 +126,24 @@ export function useLesson({ aiEnabled = false } = {}) {
   const sayPhase = useCallback(
     async (phase, extra = {}, { interrupt = false } = {}) => {
       const fallback = fallbackForPhase(phase, taskType, extra);
+      const maskWords =
+        shouldMaskWordOnScreen(taskType, taskPhase, step) && currentWord?.word
+          ? [currentWord.word]
+          : [];
 
       if (!aiEnabled) {
-        await speakCaption(fallback, { interrupt });
+        await speakCaption(fallback, { interrupt, maskWords });
         return;
       }
 
       try {
         const { text } = await askCompanion(buildContext(phase, extra));
-        await speakCaption(text?.trim() || fallback, { interrupt });
+        await speakCaption(text?.trim() || fallback, { interrupt, maskWords });
       } catch {
-        await speakCaption(fallback, { interrupt });
+        await speakCaption(fallback, { interrupt, maskWords });
       }
     },
-    [aiEnabled, buildContext, speakCaption, taskType]
+    [aiEnabled, buildContext, speakCaption, taskType, taskPhase, step, currentWord]
   );
 
   const resetTaskUI = useCallback((word) => {

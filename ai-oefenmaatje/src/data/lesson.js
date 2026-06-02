@@ -53,6 +53,18 @@ export function wordTtsText(word) {
   return `Het woord is ${word}.`;
 }
 
+/** Replace target word(s) in on-screen text so kids must listen, not read. */
+export function maskWordInText(text, words) {
+  if (!text || !words?.length) return text;
+  let result = text;
+  for (const word of words) {
+    if (!word) continue;
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    result = result.replace(new RegExp(escaped, "gi"), "#".repeat(word.length));
+  }
+  return result;
+}
+
 /** Short Dutch word so TTS says the klinker as in real spelling (not letter-by-letter). */
 const VOWEL_KLANKWOORD = {
   a: "tak",

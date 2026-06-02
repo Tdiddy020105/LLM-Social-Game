@@ -7,9 +7,9 @@ import WordHero from "../WordHero.jsx";
 import { DIFFICULTIES, shuffle } from "../../data/lesson.js";
 import { SESSION_END_PARENT_NOTE } from "../../lib/lessonScript.js";
 
-function LessonShell({ buddy, children }) {
+function LessonShell({ buddy, children, compact }) {
   return (
-    <div className="lesson-shell">
+    <div className={`lesson-shell${compact ? " lesson-shell--blocks" : ""}`}>
       {buddy}
       <div className="lesson-shell__main">{children}</div>
     </div>
@@ -65,6 +65,7 @@ export default function LessonView({ lesson, onRestart }) {
     currentWord && step === "task" && taskPhase === "answer" && (isKlinker || isDrag);
   const showWordHero =
     currentWord && step === "task" && taskPhase === "feedback";
+  const isBlockPlay = isDrag && step === "task" && taskPhase === "answer";
 
   if (step === "difficulty") {
     return (
@@ -118,7 +119,7 @@ export default function LessonView({ lesson, onRestart }) {
   }
 
   return (
-    <LessonShell buddy={buddy}>
+    <LessonShell buddy={buddy} compact={isBlockPlay}>
       <header className="lesson-progress">
         <span className="lesson-progress__game">{taskMeta?.label}</span>
         <div className="lesson-progress__bar">
@@ -132,15 +133,15 @@ export default function LessonView({ lesson, onRestart }) {
         </span>
       </header>
 
-      <section className="lesson-card">
-        {showListenPrompt && <ListenPrompt onReplay={replayWord} />}
+      <section className={`lesson-card${isBlockPlay ? " lesson-card--blocks" : ""}`}>
+        {showListenPrompt && <ListenPrompt onReplay={replayWord} compact={isBlockPlay} />}
 
         {showWordHero && (
           <WordHero word={currentWord.word} hint="Het woord was" onReplay={replayWord} highlight />
         )}
 
         {taskPhase === "answer" && (
-          <>
+          <div className="lesson-card__actions">
             {isKlinker && currentWord && (
               <VowelGame
                 options={vowelOptions}
@@ -164,7 +165,7 @@ export default function LessonView({ lesson, onRestart }) {
             >
               Klaar
             </button>
-          </>
+          </div>
         )}
 
         {taskPhase === "reflect" && (
