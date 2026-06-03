@@ -18,41 +18,61 @@ export const DIFFICULTY_LINE = {
   line: "Kies makkelijk, normaal of moeilijk.",
 };
 
+export const DIFFICULTY_HINTS = {
+  makkelijk: "Je ziet het woord en een plaatje. Leg de blokjes eronder.",
+  normaal: "Je hoort het woord. Kies het juiste blauw-wit patroon.",
+  moeilijk: "Je hoort het woord. Leg blokjes en typ het woord.",
+};
+
 export const LISTEN_PROMPT_LINE = {
   line: "Luister goed. Het woord staat niet op je scherm.",
 };
 
 export const BLOCK_LEGEND_LINE = {
-  line: "Wit is klinker, rood is medeklinker. Sleep elk blokje naar een vakje erboven. Van links naar rechts, net als het woord dat je hoort.",
+  line: "Wit is klinker, blauw is medeklinker. Versleep elk blokje naar een vakje erboven. Van links naar rechts, net als het woord dat je hoort.",
 };
 
 export function taskHint(taskType) {
-  if (taskType === "klinker-detective") {
+  if (taskType === "blok-zien") {
     return {
-      line: "Luister naar het woord. Kies de klinker in het midden.",
+      line: "Kijk naar het woord en het plaatje. Leg de blokjes eronder. Wit is klinker, blauw is medeklinker.",
     };
   }
-  if (taskType === "blok-puzzel") {
+  if (taskType === "patroon-kiezen") {
     return {
-      line: "Luister naar het woord. Sleep de blokjes in de vakjes. Wit en rood, van links naar rechts.",
+      line: "Luister naar het woord. Welk patroon hoort erbij? Blauw is medeklinker, wit is klinker.",
+    };
+  }
+  if (taskType === "blok-horen") {
+    return {
+      line: "Luister naar het woord. Versleep de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
+    };
+  }
+  if (taskType === "woord-typen") {
+    return {
+      line: "Typ het woord dat je net hebt gehoord.",
     };
   }
   return { line: "Laten we verder gaan." };
 }
 
-export function levelHint() {
-  return { line: "Goed gedaan! Nu de blok-puzzel met hetzelfde woord." };
-}
-
-export function feedbackLine(correct, mistakeCount) {
+export function feedbackLine(correct, mistakeCount, taskType) {
   if (correct) return { line: "Goed gedaan!" };
   if (mistakeCount >= 3) {
     return { line: "Even rustig. Daarna proberen we opnieuw." };
   }
+  if (taskType === "woord-typen") {
+    if (mistakeCount === 2) return { line: "Bijna! Probeer het nog een keer." };
+    return { line: "Bijna. Luister nog eens en typ het woord opnieuw." };
+  }
+  if (taskType === "patroon-kiezen") {
+    if (mistakeCount === 2) return { line: "Bijna! Luister nog een keer." };
+    return { line: "Bijna. Luister nog eens en kies het patroon opnieuw." };
+  }
   if (mistakeCount === 2) {
     return { line: "Bijna! Luister nog een keer." };
   }
-  return { line: "Bijna. Luister nog eens goed naar het midden van het woord." };
+  return { line: "Bijna. Probeer het nog eens." };
 }
 
 export const REFLECT_LINE = {
@@ -70,7 +90,10 @@ export const SESSION_END_KID = {
 export const SESSION_END_PARENT_NOTE =
   "Voor ouder: vul de enquête in die je per e-mail ontving.";
 
-/** Visual-only helper under the buddy caption — not spoken separately. */
 export function puzzleSlotLabel(blockCount) {
   return `${blockCount} ${blockCount === 1 ? "vakje" : "vakjes"} — van links naar rechts`;
+}
+
+export function moeilijkStepLabel(subStep) {
+  return subStep === "woord-typen" ? "Stap 2: typen" : "Stap 1: blokjes";
 }

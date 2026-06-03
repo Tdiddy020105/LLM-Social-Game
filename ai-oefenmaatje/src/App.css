@@ -663,7 +663,7 @@ button {
 }
 
 .lego-block--consonant {
-  background: #c93c3c;
+  background: #2563eb;
   color: #fff;
 }
 
@@ -695,7 +695,7 @@ button {
 
 .lego-block--consonant .lego-block__studs::before,
 .lego-block--consonant .lego-block__studs::after {
-  background: #d94848;
+  background: #3b82f6;
 }
 
 .lego-block--vowel .lego-block__studs::before,
@@ -1924,7 +1924,7 @@ button {
 }
 
 .block-legend__swatch--consonant {
-  background: #c93c3c;
+  background: #2563eb;
 }
 
 .block-legend__tap {
@@ -2481,4 +2481,206 @@ button {
   .child-area--lesson {
     padding: 8px 10px 12px;
   }
+}
+
+/* Pattern picker (patroon-kiezen) */
+.pattern-game {
+  width: 100%;
+}
+
+.pattern-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.pattern-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  border: 2px solid var(--kid-border, #e8dfd3);
+  border-radius: 14px;
+  background: var(--kid-surface, #fff);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pattern-option:hover:not(:disabled) {
+  border-color: #93c5fd;
+}
+
+.pattern-option--active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.pattern-option:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.pattern-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pattern-row--small {
+  gap: 4px;
+}
+
+.pattern-row__block {
+  width: 28px;
+  height: 22px;
+  border-radius: 5px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pattern-row--small .pattern-row__block {
+  width: 20px;
+  height: 16px;
+}
+
+.pattern-row__block--vowel {
+  background: #f0f0f0;
+}
+
+.pattern-row__block--consonant {
+  background: #2563eb;
+}
+
+/* Typing step */
+.type-word-game {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.type-word-game__label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--kid-text-muted, #6a5a48);
+}
+
+.type-word-game__input {
+  width: 100%;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  text-align: center;
+  padding: 16px 20px;
+  border: 2px solid var(--kid-border, #e8dfd3);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--kid-text, #2c2416);
+  letter-spacing: 0.06em;
+}
+
+.type-word-game__input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.type-word-game__pattern-recap {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.type-word-game__pattern-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--kid-text-muted, #6a5a48);
+}
+
+/* Word image (makkelijk) */
+.word-image {
+  margin: 12px auto 16px;
+  max-width: 200px;
+}
+
+.word-image__img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  background: #f8f4ef;
+  box-shadow: var(--kid-shadow-soft, 0 4px 12px rgba(0, 0, 0, 0.08));
+}
+
+/* Reflect: keep answer visible */
+.lesson-card__task--reflect {
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.lesson-card__task--reflect .pattern-option--active,
+.lesson-card__task--reflect .answer-slot--filled {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Feedback with blocks */
+.feedback-blocks {
+  margin-bottom: 16px;
+}
+
+.feedback-blocks__label {
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 10px;
+  color: var(--kid-text-muted, #6a5a48);
+}
+
+/* Word + plaatje support (makkelijk) */
+.word-support {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.word-support__hint {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--kid-text-muted, #6a5a48);
+  margin: 8px 0 4px;
+}
+
+.word-support .word-image {
+  margin: 0 auto 10px;
+  max-width: 180px;
+}
+
+.word-support .word-hero {
+  margin-bottom: 4px;
+}
+
+/* Difficulty picker hints */
+.btn--difficulty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+}
+
+.btn--difficulty__label {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.btn--difficulty__hint {
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.25;
+  opacity: 0.85;
+  max-width: 140px;
+}
+
+.feedback-blocks .word-hero--compact {
+  margin-top: 12px;
 }

@@ -1,21 +1,3 @@
-export const GAMES = [
-  {
-    id: "woord-bouwen",
-    title: "Woord bouwen",
-    description: "Sleep blokjes om een gesproken woord te bouwen.",
-  },
-  {
-    id: "klinker-zoeken",
-    title: "Klinker zoeken",
-    description: "Kies de juiste klinker bij het woord.",
-  },
-  {
-    id: "klank-volgorde",
-    title: "Klank volgorde",
-    description: "Zet de klanken in de goede volgorde.",
-  },
-];
-
 const VOWEL_LETTERS = new Set(["a", "e", "i", "o", "u"]);
 
 function letterType(char) {
@@ -48,29 +30,24 @@ export function buildLettersFromSpelling(word) {
 
 const WORD_DEFS = [
   {
-    word: "boom",
-    vowel: "oo",
-    vowelOptions: ["oo", "o", "ee", "aa"],
-  },
-  {
-    word: "maan",
-    vowel: "aa",
-    vowelOptions: ["aa", "a", "oo", "ee"],
-  },
-  {
     word: "vis",
-    vowel: "i",
-    vowelOptions: ["i", "ie", "ee", "a"],
-  },
-  {
-    word: "raam",
-    vowel: "aa",
-    vowelOptions: ["aa", "a", "oo", "ee"],
+    image: "/words/vis.svg",
   },
   {
     word: "tak",
-    vowel: "a",
-    vowelOptions: ["a", "aa", "o", "e"],
+    image: "/words/tak.svg",
+  },
+  {
+    word: "maan",
+    image: "/words/maan.svg",
+  },
+  {
+    word: "boom",
+    image: "/words/boom.svg",
+  },
+  {
+    word: "raam",
+    image: "/words/raam.svg",
   },
 ];
 
@@ -78,15 +55,6 @@ export const WORDS = WORD_DEFS.map((def) => ({
   ...def,
   letters: buildLettersFromSpelling(def.word),
 }));
-
-export const EASY_WORDS = ["vis", "tak"];
-
-export const FAVORITE_BLOCKS = [
-  { id: "fav-b", text: "b", type: "consonant" },
-  { id: "fav-oo", text: "oo", type: "vowel" },
-  { id: "fav-m", text: "m", type: "consonant" },
-  { id: "fav-a", text: "a", type: "vowel" },
-];
 
 export function shuffle(list) {
   const copy = [...list];

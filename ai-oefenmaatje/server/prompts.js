@@ -38,37 +38,24 @@ export function buildUserMessage(context) {
       'Zeg tegen het kind: "Hoi, ik ben je oefenmaatje. We gaan samen woorden oefenen. Je hoeft het niet meteen goed te doen. We denken samen na."',
     difficulty_ask:
       'Vraag: "Wil je makkelijk, normaal of moeilijk beginnen?"',
-    task_explain_klinker:
-      "Leg in één zin uit: luister naar het woord (alleen audio, niet op het scherm) en kies de klinker in het midden. Noem het woord NIET in je antwoord.",
     task_explain:
-      "Leg in één zin uit wat het kind moet doen. Noem het woord letterlijk. Bij klank-volgorde/woord-bouwen: zeg dat het woord op het scherm staat.",
+      "Leg in één zin uit wat het kind moet doen volgens de opdracht (blok-zien, patroon-kiezen, blok-horen of woord-typen).",
     reflect_certain: 'Vraag rustig: "Ben je zeker?"',
-    reflect_slow:
-      "Vraag het kind het woord langzaam in gedachten te zeggen en welke klinker in het midden zit. Schrijf GEEN letters of klanken in je antwoord.",
-    reflect_slow_klinker:
-      "Zelfde als reflect_slow maar noem het woord niet en geef geen spelling.",
     feedback_correct:
-      'Proces-feedback, bijvoorbeeld: "Mooi. Je hebt goed geluisterd naar de klank in het woord."',
+      'Proces-feedback, bijvoorbeeld: "Mooi. Je hebt goed geoefend."',
     feedback_wrong:
       mistakeCount === 1
-        ? 'Zeg: "Bijna. Luister nog eens goed naar het midden van het woord."'
+        ? 'Zeg: "Bijna. Probeer het nog eens."'
         : mistakeCount === 2
-          ? "Geef hint over de middelste klank zonder het hele woord te spellen."
-          : 'Zeg dat het lastig is en dat jullie eerst een makkelijke ronde doen.',
+          ? "Geef een korte hint zonder het antwoord weg te geven."
+          : "Stel gerust: even rustig, daarna opnieuw proberen.",
     confidence_start:
       "Stel gerust: even iets makkelijks om vertrouwen te krijgen.",
-    confidence_done:
-      "Kort positief: weer op gang, daarna het vorige woord opnieuw.",
-    level_up: 'Vraag: "Zullen we een stapje moeilijker proberen?"',
     session_end:
       "Bedank het kind. Zeg dat de ouder nog vragen invult.",
   };
 
-  if (phase === "task_explain" && taskType === "klinker-detective") {
-    parts.push(`Instructie: ${instructions.task_explain_klinker}`);
-  } else if (phase === "reflect_slow" && taskType === "klinker-detective") {
-    parts.push(`Instructie: ${instructions.reflect_slow_klinker}`);
-  } else if (instructions[phase]) {
+  if (instructions[phase]) {
     parts.push(`Instructie: ${instructions[phase]}`);
   }
   return parts.join("\n");

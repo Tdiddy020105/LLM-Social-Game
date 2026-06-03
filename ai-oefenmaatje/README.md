@@ -1,16 +1,18 @@
 # AI Oefenmaatje
 
-Research prototype: a Dutch AI-led spelling lesson for children with dyslexia. One guided session—no game menu. Parents and children can use it remotely without a researcher present.
+Research prototype: a Dutch guided spelling lesson for children with dyslexia (groep 4+). One session per visit—no game menu. Parents and children can use it remotely without a researcher present.
 
 ## Features
 
-- **AI lesson mode** — substitute-teacher flow in Dutch (Google Gemini + scripted fallback)
-- **One guided path**: intro → difficulty → Klinker Detective → Klank volgorde → Woord bouwen
-- **Reflection before feedback** — certainty, slow spelling, keep or change answer
-- **Reflection flow**: certainty → why → check → feedback
-- **Browser TTS** (free Dutch voice in Chrome/Edge/Safari); optional Azure/Google via server
-- **Parent panel**: frustration recovery, session info
-- **End survey** for parents (on-screen only, not stored)
+- **Three difficulty levels** — each level uses a different exercise (Margit's approach):
+  - **Makkelijk** — see the word + picture; build the **blauw/wit block pattern** underneath (same blocks as her method, no letters on blocks)
+  - **Normaal** — hear the word; pick the correct blue/white block pattern
+  - **Moeilijk** — hear the word; build the pattern, then type the word
+- **Reflection before feedback** — certainty check before the maatje confirms
+- **Scripted Dutch companion** — exact match between voice and on-screen caption
+- **Google Cloud TTS** (optional) or browser fallback
+- **Parent panel** — session info and recovery controls
+- **End note** for parents (on-screen only)
 
 ## Setup
 
@@ -20,34 +22,28 @@ Research prototype: a Dutch AI-led spelling lesson for children with dyslexia. O
 cp .env.example .env
 ```
 
-2. Optional: `GOOGLE_GENAI_API_KEY` in `.env`. Speech uses the browser by default (`TTS_PROVIDER=browser`).
+2. Optional: `GOOGLE_GENAI_API_KEY`, `GOOGLE_TTS_API_KEY`, `TTS_PROVIDER=google`
 
 3. Install and run:
 
 ```bash
-npm install   # required once — installs Vite, Express, etc.
-npm run dev     # starts frontend + API together
+npm install
+npm run dev
 ```
-
-If you prefer two terminals: `npm run dev:client` and `npm run dev:server`.
 
 - Frontend: http://localhost:5173  
 - API: http://localhost:3001  
 
-## Scripts
+## Word images
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Vite + API server |
-| `npm run dev:client` | Frontend only |
-| `npm run dev:server` | API only |
+Place illustrations in `public/words/` (e.g. `maan.webp`). Update `image` paths in `src/data/words.js`. SVG placeholders are included until real assets are added.
 
 ## API routes
 
 - `GET /api/config` — GenAI/TTS status
-- `POST /api/chat` — LLM response (`{ context }`)
-- `POST /api/tts` — speech audio or `{ provider: "browser" }`
+- `POST /api/chat` — LLM response (optional; lesson uses scripted lines)
+- `POST /api/tts` — speech audio
 
 ## Research notes
 
-This prototype tests interaction design, supportive AI feedback, reflection, and remote usability. It does not diagnose dyslexia or replace teachers.
+This prototype tests interaction design, reflection, and remote usability with dyslexia specialists. It does not diagnose dyslexia or replace teachers.

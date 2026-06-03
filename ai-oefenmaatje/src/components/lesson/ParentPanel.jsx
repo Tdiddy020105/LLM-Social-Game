@@ -1,12 +1,14 @@
 import StatusBadge from "../StatusBadge.jsx";
 
 const CHILD_HINTS = {
-  "klinker-detective":
-    "Uw kind hoort het woord. Op dit scherm staan geen letters — alleen luisteren.",
-  "klank-volgorde":
-    "Uw kind hoort het woord. Blokjes hebben geen letters — wit klinker, rood medeklinker.",
-  "woord-bouwen":
-    "Zelfde blokjes: luisteren, tikken voor de klank, dan op volgorde leggen.",
+  "blok-zien":
+    "Uw kind ziet het woord en een plaatje. Leg blauw-witte blokjes (geen letters).",
+  "patroon-kiezen":
+    "Uw kind hoort het woord en kiest een blauw-wit patroon (geen letters).",
+  "blok-horen":
+    "Uw kind hoort het woord en legt kleurenblokjes zonder letters.",
+  "woord-typen":
+    "Uw kind typt het woord na de blok-puzzel.",
 };
 
 export default function ParentPanel({ config, lesson, onGoSurvey }) {
@@ -21,6 +23,7 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
     checkAnswer,
     startConfidenceBreak,
     replayWord,
+    difficulty,
   } = lesson;
 
   const inTask = step === "task" && currentWord;
@@ -30,12 +33,6 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
       <h2 className="parent-panel__title">Voor ouder</h2>
       <StatusBadge config={config} />
 
-      {step === "onboarding" && (
-        <p className="parent-child-hint">
-          Uw kind doorloopt een korte uitleg. Klik samen op Volgende.
-        </p>
-      )}
-
       {step === "difficulty" && (
         <p className="parent-child-hint">Laat uw kind het niveau kiezen.</p>
       )}
@@ -43,13 +40,8 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
       {inTask && (
         <div className="parent-info parent-info--compact">
           <p className="parent-info__label">{taskMeta?.label}</p>
+          {difficulty && <p className="parent-info__level">Niveau: {difficulty}</p>}
           <p className="parent-word">{currentWord.word}</p>
-          {taskType === "klinker-detective" && (
-            <>
-              <p className="label">Klinker (midden)</p>
-              <p className="parent-answer-key">{currentWord.vowel}</p>
-            </>
-          )}
           <p className="parent-child-hint">{CHILD_HINTS[taskType]}</p>
           <p className="parent-phase">Fase: {taskPhase}</p>
           {mistakeCount > 0 && (
@@ -69,7 +61,7 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
       )}
 
       <div className="parent-actions parent-actions--compact">
-        {inTask && (
+        {inTask && taskType !== "blok-zien" && (
           <button type="button" className="btn btn--parent" onClick={replayWord}>
             Woord laten horen
           </button>

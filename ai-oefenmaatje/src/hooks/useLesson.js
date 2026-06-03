@@ -1,12 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 import {
-  LAST_TASK_TYPE,
   TASK_TYPES,
   buildWordQueue,
   dragPatternMatches,
+  getPatternOptions,
+  getTaskForDifficulty,
   initDragState,
+  isDragTask,
+  isListenTask,
   maskWordInText,
-  vowelSpeakText,
+  patternMatches,
+  typedWordMatches,
   wordTtsText,
 } from "../data/lesson.js";
 import {
@@ -15,7 +19,6 @@ import {
   DIFFICULTY_LINE,
   KID_INTRO_LINE,
   REFLECT_LINE,
-  levelHint,
   taskHint,
 } from "../lib/lessonScript.js";
 import { getLessonFallback } from "../lib/lessonFallbacks.js";
@@ -27,22 +30,6 @@ function lineText(line) {
   return line?.line || "";
 }
 
-function nextTaskType(current) {
-  const order = TASK_TYPES.map((t) => t.id);
-  const idx = order.indexOf(current);
-  return idx < order.length - 1 ? order[idx + 1] : current;
-}
-
-function isDragTask(type) {
-  return type === "blok-puzzel";
-}
-
-function shouldMaskWordOnScreen(taskType, taskPhase, step) {
-  if (step !== "task") return false;
-  if (taskPhase === "feedback") return false;
-  return taskType === "klinker-detective" || isDragTask(taskType);
-}
-
 function fallbackForPhase(phase, taskType, { mistakeCount, correct } = {}) {
   return getLessonFallback({
     phase,
@@ -50,6 +37,14 @@ function fallbackForPhase(phase, taskType, { mistakeCount, correct } = {}) {
     mistakeCount,
     correct,
   });
+}
+
+function shouldMaskWord(taskType, taskPhase, step, difficulty) {
+  if (step !== "task") return false;
+  if (taskPhase === "feedback") return false;
+  if (taskType === "blok-zien") return false;
+  if (taskType === "woord-typen") return false;
+  return isListenTask(taskType) || taskType === "blok-horen";
 }
 
 export function useLesson({ aiEnabled = false } = {}) {
@@ -67,21 +62,27 @@ export function useLesson({ aiEnabled = false } = {}) {
   const blockLegendSpokenRef = useRef(false);
 
   const [difficulty, setDifficulty] = useState(null);
-  const [taskType, setTaskType] = useState("klinker-detective");
+  const [taskType, setTaskType] = useState("blok-zien");
   const [wordQueue, setWordQueue] = useState([]);
   const [wordIndex, setWordIndex] = useState(0);
   const [mistakeCount, setMistakeCount] = useState(0);
   const [correctStreak, setCorrectStreak] = useState(0);
 
-  const [vowelChoice, setVowelChoice] = useState(null);
+  const [patternChoiceId, setPatternChoiceId] = useState(null);
+  const [patternChoice, setPatternChoice] = useState(null);
+  const [patternOptions, setPatternOptions] = useState([]);
+  const [typedWord, setTypedWord] = useState("");
   const [tray, setTray] = useState([]);
   const [slots, setSlots] = useState([]);
+  const [completedSlots, setCompletedSlots] = useState([]);
+  const [pendingTypingStep, setPendingTypingStep] = useState(false);
 
-  const [pendingLevelUp, setPendingLevelUp] = useState(false);
   const [taskInstruction, setTaskInstruction] = useState("");
 
   const currentWord = wordQueue[wordIndex];
   const taskMeta = TASK_TYPES.find((t) => t.id === taskType);
+  const isMoeilijkTyping =
+    difficulty === "moeilijk" && taskType === "woord-typen";
 
   const speakCaption = useCallback(async (text, { interrupt = false, maskWords } = {}) => {
     const line = text?.trim();
@@ -117,30 +118,55 @@ export function useLesson({ aiEnabled = false } = {}) {
     async (word, { interrupt = false } = {}) => {
       if (!word) return;
       const phrase = wordTtsText(word);
-      await speakCaption(phrase, { interrupt, maskWords: [word] });
+      const mask =
+        shouldMaskWord(taskType, taskPhase, step, difficulty) ? [word] : [];
+      await speakCaption(phrase, { interrupt, maskWords: mask });
     },
-    [speakCaption]
+    [speakCaption, taskType, taskPhase, step, difficulty]
   );
 
   const sayPhase = useCallback(
     async (phase, extra = {}, { interrupt = false } = {}) => {
       const line = fallbackForPhase(phase, taskType, extra);
       const maskWords =
-        shouldMaskWordOnScreen(taskType, taskPhase, step) && currentWord?.word
+        shouldMaskWord(taskType, taskPhase, step, difficulty) && currentWord?.word
           ? [currentWord.word]
           : [];
       await speakCaption(line, { interrupt, maskWords });
     },
-    [speakCaption, taskType, taskPhase, step, currentWord]
+    [speakCaption, taskType, taskPhase, step, difficulty, currentWord]
   );
 
-  const resetTaskUI = useCallback((word) => {
-    setVowelChoice(null);
+  const resetTaskUI = useCallback((word, nextTaskType, { keepCompletedSlots = false } = {}) => {
+    setPatternChoiceId(null);
+    setPatternChoice(null);
+    setTypedWord("");
     setMistakeCount(0);
     setTaskPhase("answer");
-    const drag = initDragState(word.word);
-    setTray(drag.tray);
-    setSlots(drag.slots);
+    setPendingTypingStep(false);
+    if (!keepCompletedSlots) setCompletedSlots([]);
+
+    if (nextTaskType === "patroon-kiezen") {
+      setPatternOptions(getPatternOptions(word));
+      setTray([]);
+      setSlots([]);
+      return;
+    }
+
+    if (isDragTask(nextTaskType)) {
+      const drag = initDragState(word.word);
+      setTray(drag.tray);
+      setSlots(drag.slots);
+      return;
+    }
+
+    if (nextTaskType === "woord-typen") {
+      setTray([]);
+      return;
+    }
+
+    setTray([]);
+    setSlots([]);
   }, []);
 
   const resetLesson = useCallback(() => {
@@ -153,15 +179,19 @@ export function useLesson({ aiEnabled = false } = {}) {
     setCaption("");
     setSpeaking(false);
     setDifficulty(null);
-    setTaskType("klinker-detective");
+    setTaskType("blok-zien");
     setWordQueue([]);
     setWordIndex(0);
     setMistakeCount(0);
     setCorrectStreak(0);
-    setVowelChoice(null);
+    setPatternChoiceId(null);
+    setPatternChoice(null);
+    setPatternOptions([]);
+    setTypedWord("");
     setTray([]);
     setSlots([]);
-    setPendingLevelUp(false);
+    setCompletedSlots([]);
+    setPendingTypingStep(false);
   }, []);
 
   const startLesson = useCallback(async () => {
@@ -172,46 +202,87 @@ export function useLesson({ aiEnabled = false } = {}) {
     await speakInstruction(DIFFICULTY_LINE.line);
   }, [speakInstruction]);
 
+  const beginWordTask = useCallback(
+    async (wordData, nextTaskType, { playWord = false, speakLegend = false } = {}) => {
+      setTaskType(nextTaskType);
+      resetTaskUI(wordData, nextTaskType);
+
+      if (speakLegend && isDragTask(nextTaskType) && !blockLegendSpokenRef.current) {
+        blockLegendSpokenRef.current = true;
+        await speakInstruction(BLOCK_LEGEND_LINE.line);
+      }
+
+      await speakInstruction(lineText(taskHint(nextTaskType)));
+
+      if (playWord && isListenTask(nextTaskType)) {
+        await speakWord(wordData.word);
+      }
+    },
+    [resetTaskUI, speakInstruction, speakWord]
+  );
+
   const pickDifficulty = useCallback(
     async (level) => {
       const queue = buildWordQueue(level);
       const first = queue[0];
+      const initialTask = getTaskForDifficulty(level);
+
       setDifficulty(level);
       setWordQueue(queue);
       setWordIndex(0);
-      setTaskType("klinker-detective");
       setCorrectStreak(0);
-      setPendingLevelUp(false);
-      resetTaskUI(first);
       setStep("task");
-      await speakInstruction(lineText(taskHint("klinker-detective")));
-      await speakWord(first.word);
+
+      await beginWordTask(first, initialTask, {
+        playWord: isListenTask(initialTask),
+        speakLegend: isDragTask(initialTask),
+      });
     },
-    [resetTaskUI, speakInstruction, speakWord]
+    [beginWordTask]
   );
 
   const startConfidenceBreak = useCallback(() => {
     setStep("confidence");
   }, []);
 
+  const evaluateAnswer = useCallback(() => {
+    if (!currentWord) return false;
+
+    if (taskType === "patroon-kiezen") {
+      return patternMatches(patternChoice, currentWord);
+    }
+    if (taskType === "blok-zien") {
+      return dragPatternMatches(slots, currentWord);
+    }
+    if (taskType === "blok-horen") {
+      return dragPatternMatches(slots, currentWord);
+    }
+    if (taskType === "woord-typen") {
+      return typedWordMatches(typedWord, currentWord.word);
+    }
+    return false;
+  }, [currentWord, taskType, patternChoice, slots, typedWord]);
+
   const checkAnswer = useCallback(async () => {
     if (!currentWord) return;
 
-    let correct = false;
-    if (taskType === "klinker-detective") {
-      correct = vowelChoice === currentWord.vowel;
-    } else if (isDragTask(taskType)) {
-      correct = dragPatternMatches(slots, currentWord);
-    }
+    const correct = evaluateAnswer();
 
     if (correct) {
       setTaskPhase("feedback");
       const streak = correctStreak + 1;
       setCorrectStreak(streak);
       await sayPhase("feedback_correct", { correct: true });
-      if (streak >= 2 && taskType !== LAST_TASK_TYPE) {
-        setPendingLevelUp(true);
+
+      if (isDragTask(taskType)) {
+        setCompletedSlots([...slots]);
       }
+
+      if (difficulty === "moeilijk" && taskType === "blok-horen") {
+        setPendingTypingStep(true);
+        return;
+      }
+
       return;
     }
 
@@ -226,20 +297,34 @@ export function useLesson({ aiEnabled = false } = {}) {
     }
 
     await sayPhase("feedback_wrong", { correct: false, mistakeCount: nextMistake });
-    await speakWord(currentWord.word);
+
+    if (isListenTask(taskType)) {
+      await speakWord(currentWord.word);
+    }
+
     setTaskPhase("answer");
-    if (taskType === "klinker-detective") {
-      setVowelChoice(null);
+
+    if (taskType === "patroon-kiezen") {
+      setPatternChoiceId(null);
+      setPatternChoice(null);
+    } else if (taskType === "woord-typen") {
+      setTypedWord("");
+    } else if (isDragTask(taskType)) {
+      const drag = initDragState(currentWord.word);
+      setTray(drag.tray);
+      setSlots(drag.slots);
     }
   }, [
-    taskType,
-    vowelChoice,
-    slots,
     currentWord,
-    mistakeCount,
+    evaluateAnswer,
     correctStreak,
+    mistakeCount,
+    difficulty,
+    taskType,
+    slots,
     sayPhase,
     speakWord,
+    speakInstruction,
     startConfidenceBreak,
   ]);
 
@@ -255,31 +340,30 @@ export function useLesson({ aiEnabled = false } = {}) {
 
   const changeAnswer = useCallback(() => {
     setTaskPhase("answer");
-    setVowelChoice(null);
   }, []);
 
   const finishConfidence = useCallback(async () => {
     setStep("task");
     setMistakeCount(0);
-    resetTaskUI(currentWord);
+    resetTaskUI(currentWord, taskType);
     await speakInstruction(lineText(taskHint(taskType)));
-    await speakWord(currentWord.word);
+    if (isListenTask(taskType)) {
+      await speakWord(currentWord.word);
+    }
   }, [currentWord, taskType, resetTaskUI, speakInstruction, speakWord]);
 
+  const startTypingStep = useCallback(async () => {
+    setPendingTypingStep(false);
+    setTaskType("woord-typen");
+    setTaskPhase("answer");
+    setMistakeCount(0);
+    setTypedWord("");
+    await speakInstruction(lineText(taskHint("woord-typen")));
+  }, [speakInstruction]);
+
   const advanceWord = useCallback(async () => {
-    if (pendingLevelUp) {
-      setPendingLevelUp(false);
-      const nextType = nextTaskType(taskType);
-      const wordData = wordQueue[wordIndex];
-      setTaskType(nextType);
-      resetTaskUI(wordData);
-      if (isDragTask(nextType) && !blockLegendSpokenRef.current) {
-        blockLegendSpokenRef.current = true;
-        await speakInstruction(BLOCK_LEGEND_LINE.line);
-      }
-      await speakInstruction(lineText(levelHint()));
-      await speakInstruction(lineText(taskHint(nextType)));
-      await speakWord(wordData.word);
+    if (pendingTypingStep) {
+      await startTypingStep();
       return;
     }
 
@@ -291,30 +375,27 @@ export function useLesson({ aiEnabled = false } = {}) {
 
     const next = wordIndex + 1;
     const wordData = wordQueue[next];
+    const baseTask = getTaskForDifficulty(difficulty);
+
     setWordIndex(next);
-    resetTaskUI(wordData);
-    await speakWord(wordData.word);
-  }, [
-    pendingLevelUp,
-    taskType,
-    wordIndex,
-    wordQueue,
-    resetTaskUI,
-    sayPhase,
-    speakInstruction,
-    speakWord,
-  ]);
+    await beginWordTask(wordData, baseTask, {
+      playWord: isListenTask(baseTask),
+      speakLegend: false,
+    });
+  }, [pendingTypingStep, startTypingStep, wordIndex, wordQueue, difficulty, beginWordTask, sayPhase]);
 
   const canSubmit =
-    taskType === "klinker-detective"
-      ? Boolean(vowelChoice)
-      : slots.every(Boolean);
+    taskType === "patroon-kiezen"
+      ? Boolean(patternChoice)
+      : taskType === "woord-typen"
+        ? typedWord.trim().length > 0
+        : isDragTask(taskType)
+          ? slots.every(Boolean)
+          : false;
 
-  const selectVowel = useCallback((grapheme) => {
-    setVowelChoice(grapheme);
-    if (grapheme) {
-      speech.speakAndWait(vowelSpeakText(grapheme), { interrupt: true });
-    }
+  const selectPattern = useCallback((id, pattern) => {
+    setPatternChoiceId(id);
+    setPatternChoice(pattern);
   }, []);
 
   const repeat = useCallback(() => {
@@ -335,18 +416,25 @@ export function useLesson({ aiEnabled = false } = {}) {
     taskPhase,
     caption,
     speaking,
+    difficulty,
     taskType,
     taskMeta,
     currentWord,
     wordIndex,
     wordQueue,
-    vowelChoice,
-    selectVowel,
+    patternChoiceId,
+    patternChoice,
+    patternOptions,
+    selectPattern,
+    typedWord,
+    setTypedWord,
     tray,
     slots,
-    pendingLevelUp,
+    completedSlots,
     canSubmit,
     taskInstruction,
+    isMoeilijkTyping,
+    pendingTypingStep,
     resetLesson,
     startLesson,
     pickDifficulty,
@@ -355,6 +443,9 @@ export function useLesson({ aiEnabled = false } = {}) {
     changeAnswer,
     finishConfidence,
     advanceWord,
+    startTypingStep,
+    startConfidenceBreak,
+    checkAnswer,
     handleDropSlot: (slotIndex, letterId) => {
       const fromSlot = slots.findIndex((item) => item?.id === letterId);
       const letter =

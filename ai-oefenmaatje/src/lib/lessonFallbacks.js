@@ -4,7 +4,6 @@ import {
   REFLECT_LINE,
   SESSION_END_KID,
   feedbackLine,
-  levelHint,
   taskHint,
 } from "./lessonScript.js";
 
@@ -16,14 +15,13 @@ export function getLessonFallback(context) {
     return REFLECT_LINE.line;
   }
   if (phase === "task_explain") return taskHint(taskType).line;
-  if (phase === "level_up") return levelHint().line;
   if (phase === "feedback_correct") return feedbackLine(true).line;
   if (phase === "feedback_wrong") {
-    return feedbackLine(false, mistakeCount).line;
+    return feedbackLine(false, mistakeCount, taskType).line;
   }
   if (phase === "confidence_start") {
     return mistakeCount >= 3
-      ? feedbackLine(false, 3).line
+      ? feedbackLine(false, 3, taskType).line
       : CONFIDENCE_LINE.line;
   }
   if (phase === "session_end") return SESSION_END_KID.line;

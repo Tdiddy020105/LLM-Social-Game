@@ -7,7 +7,7 @@ export default function BlockLegend({ blockCount }) {
       </span>
       <span className="block-legend__item">
         <span className="block-legend__swatch block-legend__swatch--consonant" />
-        Rood = medeklinker
+        Blauw = medeklinker
       </span>
       {blockCount > 0 && (
         <span className="block-legend__count">
