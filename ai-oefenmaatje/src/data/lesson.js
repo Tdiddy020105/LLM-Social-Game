@@ -1,4 +1,4 @@
-import { WORDS, buildLettersFromSpelling, buildTray, emptySlots, shuffle } from "./words.js";
+import { WORDS, buildLettersFromSpelling, buildTrayWithExtras, emptySlots, shuffle } from "./words.js";
 
 export const DIFFICULTIES = [
   { id: "makkelijk", label: "Makkelijk" },
@@ -6,11 +6,12 @@ export const DIFFICULTIES = [
   { id: "moeilijk", label: "Moeilijk" },
 ];
 
+/** Margit: makkelijk = zien+blokjes, normaal = horen+patroon, moeilijk = horen+blokjes */
 export const TASK_TYPES = [
-  { id: "blok-zien", label: "Woord bouwen", order: 0 },
-  { id: "patroon-kiezen", label: "Patroon kiezen", order: 1 },
-  { id: "blok-horen", label: "Blok-puzzel", order: 2 },
-  { id: "woord-typen", label: "Woord typen", order: 3 },
+  { id: "blok-zien", label: "Blokjes leggen" },
+  { id: "patroon-kiezen", label: "Patroon kiezen" },
+  { id: "blok-horen", label: "Blokjes leggen" },
+  { id: "woord-typen", label: "Woord typen" },
 ];
 
 export const TASK_BY_DIFFICULTY = {
@@ -21,8 +22,8 @@ export const TASK_BY_DIFFICULTY = {
 
 const WORDS_BY_DIFFICULTY = {
   makkelijk: ["vis", "tak", "maan"],
-  normaal: ["boom", "maan", "vis"],
-  moeilijk: ["raam", "boom", "maan"],
+  normaal: ["vis", "tak", "maan"],
+  moeilijk: ["boom", "maan", "raam"],
 };
 
 export function getTaskForDifficulty(difficulty) {
@@ -72,7 +73,6 @@ function wrongLengthPattern(pattern) {
   return pattern.slice(0, -1);
 }
 
-/** Pattern options for patroon-kiezen — each option is vowel/consonant[] */
 export function getPatternOptions(wordData) {
   const correct = wordPattern(wordData);
   const correctKey = patternKey(correct);
@@ -91,7 +91,7 @@ export function getPatternOptions(wordData) {
     if (seen.has(key)) continue;
     seen.add(key);
     options.push({ id: key, pattern: candidate });
-    if (options.length >= 4) break;
+    if (options.length >= 3) break;
   }
 
   while (options.length < 3) {
@@ -115,8 +115,30 @@ export function patternMatches(selectedPattern, wordData) {
   );
 }
 
+/** Makkelijk: woord zichtbaar → aantal blokjes mag getoond. Luister-niveaus: niet verraden. */
+export function showsBlockCount(difficulty) {
+  return difficulty === "makkelijk";
+}
+
+/** Makkelijk: woord + plaatje op scherm. Normaal/moeilijk: alleen plaatje. */
+export function showsWordText(difficulty) {
+  return difficulty === "makkelijk";
+}
+
+export function showsImage() {
+  return true;
+}
+
+export function wordTtsPhrase(word, difficulty) {
+  if (showsWordText(difficulty)) {
+    return `Het woord is ${word}.`;
+  }
+  return word;
+}
+
+/** Used by speech repeat fallback. */
 export function wordTtsText(word) {
-  return `Het woord is ${word}.`;
+  return word;
 }
 
 export function maskWordInText(text, words) {
@@ -130,41 +152,60 @@ export function maskWordInText(text, words) {
   return result;
 }
 
-export function dragPatternMatches(slots, wordData) {
+function filledTypesInOrder(slots) {
+  return slots.filter(Boolean).map((s) => s.type);
+}
+
+export { filledTypesInOrder };
+
+export function dragPatternMatches(slots, wordData, taskType = "blok-zien") {
   if (!wordData?.letters?.length) return false;
   const pattern = wordPattern(wordData);
-  const attempt = slots.map((s) => s?.type ?? null);
-  return (
-    attempt.length === pattern.length &&
-    pattern.every((type, i) => attempt[i] === type)
-  );
-}
 
-export function dragSpellingMatches(slots, wordData) {
-  if (!wordData?.letters?.length) return false;
-  const expected = wordData.letters.map((l) => l.text.toLowerCase());
-  const attempt = slots.map((s) => s?.text?.toLowerCase() ?? null);
-  return (
-    attempt.length === expected.length &&
-    expected.every((char, i) => attempt[i] === char)
-  );
-}
+  if (taskType === "blok-horen") {
+    const attempt = filledTypesInOrder(slots);
+    if (attempt.length !== pattern.length) return false;
+    return pattern.every((type, i) => attempt[i] === type);
+  }
 
-export function normalizeTypedWord(text) {
-  return text.trim().toLowerCase();
+  const required = pattern.length;
+  const attempt = slots.slice(0, required).map((s) => s?.type ?? null);
+  if (!attempt.every(Boolean)) return false;
+  return pattern.every((type, i) => attempt[i] === type);
 }
 
 export function typedWordMatches(input, word) {
-  return normalizeTypedWord(input) === word.toLowerCase();
+  return input.trim().toLowerCase() === word.toLowerCase();
 }
 
-export function initDragState(word) {
+/** Makkelijk: exact vakjes. Moeilijk: extra vakjes rechts (kind vult alleen wat nodig is). */
+export function slotCountForDrag(wordLength, taskType) {
+  if (taskType === "blok-horen") {
+    return wordLength + Math.max(2, Math.ceil(wordLength / 2));
+  }
+  return wordLength;
+}
+
+export function dragCanSubmit(slots, wordData, taskType) {
+  if (!wordData?.letters?.length || !slots.length) return false;
+  const required = wordData.letters.length;
+  const filledCount = slots.filter(Boolean).length;
+
+  if (taskType === "blok-zien") {
+    return slots.length === required && filledCount === required;
+  }
+
+  return filledCount === required;
+}
+
+export function initDragState(word, taskType = "blok-zien") {
   const data = getWordData(word);
   if (!data) return { tray: [], slots: [] };
   const letters = data.letters;
+  const slotCount = slotCountForDrag(letters.length, taskType);
   return {
-    tray: buildTray(letters),
-    slots: emptySlots(letters.length),
+    tray: buildTrayWithExtras(word, letters),
+    slots: emptySlots(slotCount),
   };
 }
 

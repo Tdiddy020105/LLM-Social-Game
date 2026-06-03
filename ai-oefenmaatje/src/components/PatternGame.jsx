@@ -25,7 +25,7 @@ export default function PatternGame({ options, selectedId, onSelect, disabled = 
             className={`pattern-option ${selectedId === option.id ? "pattern-option--active" : ""}`}
             disabled={disabled}
             onClick={() => onSelect(option.id, option.pattern)}
-            aria-label={`Patroon met ${option.pattern.length} blokjes`}
+            aria-label="Patroon optie"
             aria-pressed={selectedId === option.id}
           >
             <PatternRow pattern={option.pattern} />

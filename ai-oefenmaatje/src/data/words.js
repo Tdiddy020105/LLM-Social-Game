@@ -82,6 +82,34 @@ export function buildTray(letters) {
   );
 }
 
+/** Required blocks + extra distractors (Margit: many blocks, child picks what they need). */
+export function buildTrayWithExtras(word, letters) {
+  const vowelTotal = letters.filter((l) => l.type === "vowel").length;
+  let vowelIndex = 0;
+
+  const required = letters.map((letter) => {
+    if (letter.type !== "vowel") return { ...letter };
+
+    vowelIndex += 1;
+    return {
+      ...letter,
+      vowelOrdinal: vowelTotal > 1 ? vowelIndex : undefined,
+    };
+  });
+
+  const extraCount = Math.max(3, letters.length);
+  const extras = [];
+  for (let i = 0; i < extraCount; i += 1) {
+    extras.push({
+      id: `${word}-extra-${i}`,
+      text: "",
+      type: i % 2 === 0 ? "consonant" : "vowel",
+    });
+  }
+
+  return shuffle([...required, ...extras]);
+}
+
 export function emptySlots(count) {
   return Array.from({ length: count }, () => null);
 }

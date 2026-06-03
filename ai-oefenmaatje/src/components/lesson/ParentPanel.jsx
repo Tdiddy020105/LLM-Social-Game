@@ -1,14 +1,10 @@
 import StatusBadge from "../StatusBadge.jsx";
 
 const CHILD_HINTS = {
-  "blok-zien":
-    "Uw kind ziet het woord en een plaatje. Leg blauw-witte blokjes (geen letters).",
-  "patroon-kiezen":
-    "Uw kind hoort het woord en kiest een blauw-wit patroon (geen letters).",
-  "blok-horen":
-    "Uw kind hoort het woord en legt kleurenblokjes zonder letters.",
-  "woord-typen":
-    "Uw kind typt het woord na de blok-puzzel.",
+  "blok-zien": "Woord + plaatje zichtbaar. Blokjes leggen (wit/blauw).",
+  "patroon-kiezen": "Plaatje zichtbaar. Woord horen. Patroon kiezen.",
+  "blok-horen": "Plaatje zichtbaar. Woord horen. Blokjes leggen.",
+  "woord-typen": "Typ het woord na de blok-puzzel.",
 };
 
 export default function ParentPanel({ config, lesson, onGoSurvey }) {
@@ -45,23 +41,23 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
           <p className="parent-child-hint">{CHILD_HINTS[taskType]}</p>
           <p className="parent-phase">Fase: {taskPhase}</p>
           {mistakeCount > 0 && (
-            <p className="parent-mistakes">Pogingen met fout: {mistakeCount}</p>
+            <p className="parent-mistakes">Fouten: {mistakeCount}</p>
           )}
         </div>
       )}
 
       {caption && inTask && (
         <p className="parent-ai-line__text" title={caption}>
-          Zegt nu: «{caption.length > 60 ? `${caption.slice(0, 60)}…` : caption}»
+          «{caption.length > 40 ? `${caption.slice(0, 40)}…` : caption}»
         </p>
       )}
 
       {step === "confidence" && (
-        <p className="parent-child-hint">Rustmoment — kind klikt zelf verder.</p>
+        <p className="parent-child-hint">Rustmoment.</p>
       )}
 
       <div className="parent-actions parent-actions--compact">
-        {inTask && taskType !== "blok-zien" && (
+        {inTask && isListenTask(taskType) && (
           <button type="button" className="btn btn--parent" onClick={replayWord}>
             Woord laten horen
           </button>
@@ -70,25 +66,25 @@ export default function ParentPanel({ config, lesson, onGoSurvey }) {
           type="button"
           className="btn btn--parent"
           disabled={step !== "task"}
-          onClick={() => checkAnswer(true)}
+          onClick={() => checkAnswer()}
         >
           Antwoord klopt
         </button>
-        <button
-          type="button"
-          className="btn btn--parent"
-          disabled={step !== "task"}
-          onClick={() => checkAnswer(false)}
-        >
-          Antwoord klopt niet
-        </button>
         <button type="button" className="btn btn--parent" onClick={startConfidenceBreak}>
-          Kind heeft pauze nodig
+          Pauze
         </button>
         <button type="button" className="btn btn--ghost btn--compact" onClick={onGoSurvey}>
           Vragenlijst
         </button>
       </div>
     </aside>
+  );
+}
+
+function isListenTask(taskType) {
+  return (
+    taskType === "patroon-kiezen" ||
+    taskType === "blok-horen" ||
+    taskType === "woord-typen"
   );
 }

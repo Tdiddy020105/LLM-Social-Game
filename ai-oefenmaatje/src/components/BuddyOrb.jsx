@@ -11,7 +11,7 @@ export default function BuddyOrb({
   return (
     <div className="buddy-maatje" aria-live="polite">
       <div
-        className={`buddy-maatje__face ${speaking ? "buddy-maatje__face--talking" : ""}`}
+        className={`buddy-maatje__face buddy-maatje__face--alive${speaking ? " buddy-maatje__face--talking" : ""}`}
         aria-hidden="true"
       >
         <span className="buddy-maatje__eyes" />
@@ -39,7 +39,7 @@ export default function BuddyOrb({
               className="btn btn--soft btn--repeat"
               onClick={onRepeatWord}
             >
-              Woord nog een keer horen
+              Woord nog een keer
             </button>
           )}
           {onRepeat && !onRepeatInstruction && !onRepeatWord && (

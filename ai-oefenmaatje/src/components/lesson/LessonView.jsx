@@ -1,20 +1,37 @@
-import { useMemo } from "react";
 import DragWordGame from "../DragWordGame.jsx";
 import BuddyOrb from "../BuddyOrb.jsx";
 import PatternGame from "../PatternGame.jsx";
 import TypeWordGame from "../TypeWordGame.jsx";
-import ListenPrompt from "../ListenPrompt.jsx";
 import WordHero from "../WordHero.jsx";
 import WordImage from "../WordImage.jsx";
 import { PatternRow } from "../PatternGame.jsx";
-import { DIFFICULTIES, isDragTask, isListenTask } from "../../data/lesson.js";
-import { SESSION_END_PARENT_NOTE, moeilijkStepLabel, DIFFICULTY_HINTS } from "../../lib/lessonScript.js";
+import BlockLegend from "../BlockLegend.jsx";
+import { DIFFICULTIES, isDragTask, showsBlockCount, showsWordText } from "../../data/lesson.js";
+import { SESSION_END_PARENT_NOTE, moeilijkStepLabel } from "../../lib/lessonScript.js";
 
-function LessonShell({ buddy, children, compact }) {
+function LessonShell({ buddy, children, fit }) {
   return (
-    <div className={`lesson-shell${compact ? " lesson-shell--blocks" : ""}`}>
+    <div className={`lesson-shell${fit ? " lesson-shell--fit" : ""}`}>
       {buddy}
       <div className="lesson-shell__main">{children}</div>
+    </div>
+  );
+}
+
+function WordSupport({ word, showText }) {
+  if (!showText) return null;
+  return (
+    <div className="word-support word-support--text">
+      <WordHero word={word} hint="" highlight />
+    </div>
+  );
+}
+
+function WordPlaatje({ word, image }) {
+  if (!image) return null;
+  return (
+    <div className="word-plaatje">
+      <WordImage word={word} image={image} />
     </div>
   );
 }
@@ -40,6 +57,7 @@ export default function LessonView({ lesson, onRestart }) {
     tray,
     slots,
     completedSlots,
+    typingPattern,
     canSubmit,
     pickDifficulty,
     submitAnswer,
@@ -52,7 +70,6 @@ export default function LessonView({ lesson, onRestart }) {
     repeat,
     repeatInstruction,
     replayWord,
-    taskInstruction,
     pendingTypingStep,
   } = lesson;
 
@@ -65,34 +82,30 @@ export default function LessonView({ lesson, onRestart }) {
   const isBlokHoren = taskType === "blok-horen";
   const isTypen = taskType === "woord-typen";
   const isDrag = isDragTask(taskType);
-  const isListen = isListenTask(taskType);
+  const showWordText = difficulty && showsWordText(difficulty);
+  const showBlockCount = difficulty && showsBlockCount(difficulty);
 
-  const showListenPrompt =
-    currentWord && step === "task" && taskPhase === "answer" && isListen;
-  const isBlockPlay =
-    isDrag && step === "task" && taskPhase === "answer";
-  const useCompactShell = isBlockPlay || (isBlokZien && step === "task");
-  const inListenTask =
-    step === "task" && currentWord && (taskPhase === "answer" || taskPhase === "feedback") && isListen;
-  const showTaskRepeats = step === "task" && taskPhase === "answer" && taskInstruction;
-  const showRepeatLast =
-    taskPhase === "feedback" || (!showTaskRepeats && !inListenTask && !isBlokZien);
+  const useFitLayout = step === "task" || step === "confidence";
+  const needsWordReplay =
+    step === "task" &&
+    currentWord &&
+    taskPhase === "answer" &&
+    (isPatroon || isBlokHoren || isTypen);
+  const showTaskRepeats = step === "task" && taskPhase === "answer";
   const interactionLocked = taskPhase === "reflect" || speaking;
 
-  const progressLabel = useMemo(() => {
-    if (difficulty === "moeilijk") {
-      return `${moeilijkStepLabel(taskType)} · Woord ${wordIndex + 1} van ${wordQueue.length}`;
-    }
-    return `Woord ${wordIndex + 1} van ${wordQueue.length}`;
-  }, [difficulty, taskType, wordIndex, wordQueue.length]);
+  const progressLabel =
+    difficulty === "moeilijk"
+      ? `${moeilijkStepLabel(taskType)} · Woord ${wordIndex + 1}/${wordQueue.length}`
+      : `Woord ${wordIndex + 1} van ${wordQueue.length}`;
 
   const buddy = (
     <BuddyOrb
       caption={caption}
       speaking={speaking}
-      onRepeat={showRepeatLast ? repeat : undefined}
+      onRepeat={taskPhase === "feedback" ? repeat : undefined}
       onRepeatInstruction={showTaskRepeats ? repeatInstruction : undefined}
-      onRepeatWord={inListenTask || isBlokHoren ? replayWord : undefined}
+      onRepeatWord={needsWordReplay ? replayWord : undefined}
     />
   );
 
@@ -102,11 +115,12 @@ export default function LessonView({ lesson, onRestart }) {
     if (isBlokZien) {
       return (
         <>
-          <div className="word-support">
-            <WordImage word={currentWord.word} image={currentWord.image} />
-            <WordHero word={currentWord.word} hint="Dit woord bouw je" highlight />
-            <p className="word-support__hint">Leg de blokjes hieronder</p>
-          </div>
+          <WordSupport word={currentWord.word} showText />
+          <BlockLegend
+            blockCount={currentWord.letters.length}
+            compact
+            showCount={showBlockCount}
+          />
           <DragWordGame
             slots={slots}
             tray={tray}
@@ -114,6 +128,9 @@ export default function LessonView({ lesson, onRestart }) {
             onDropTray={handleDropTray}
             readOnly={readOnly}
             showLetters={false}
+            hideLegend
+            compact
+            hideCounts={!showBlockCount}
           />
         </>
       );
@@ -121,41 +138,51 @@ export default function LessonView({ lesson, onRestart }) {
 
     if (isPatroon) {
       return (
-        <PatternGame
-          options={patternOptions}
-          selectedId={patternChoiceId}
-          onSelect={selectPattern}
-          disabled={readOnly || interactionLocked}
-        />
+        <>
+          <BlockLegend compact showCount={false} />
+          <PatternGame
+            options={patternOptions}
+            selectedId={patternChoiceId}
+            onSelect={selectPattern}
+            disabled={readOnly || interactionLocked}
+          />
+        </>
       );
     }
 
     if (isBlokHoren) {
       return (
-        <DragWordGame
-          slots={slots}
-          tray={tray}
-          onDropSlot={handleDropSlot}
-          onDropTray={handleDropTray}
-          readOnly={readOnly}
-          showLetters={false}
-        />
+        <>
+          <BlockLegend compact showCount={false} />
+          <DragWordGame
+            slots={slots}
+            tray={tray}
+            onDropSlot={handleDropSlot}
+            onDropTray={handleDropTray}
+            readOnly={readOnly}
+            showLetters={false}
+            hideLegend
+            compact
+            flexiblePlacement
+            hideCounts
+          />
+        </>
       );
     }
 
     if (isTypen) {
       return (
         <>
-          {completedSlots.length > 0 && (
-            <div className="type-word-game__pattern-recap" aria-label="Jouw patroon">
-              <p className="type-word-game__pattern-label">Jouw patroon:</p>
-              <PatternRow pattern={completedSlots.map((s) => s.type)} small />
+          {typingPattern.length > 0 && (
+            <div className="type-word-game__pattern-recap">
+              <PatternRow pattern={typingPattern} small />
             </div>
           )}
           <TypeWordGame
             value={typedWord}
             onChange={setTypedWord}
             disabled={readOnly || interactionLocked}
+            autoFocus={!readOnly && taskPhase === "answer"}
           />
         </>
       );
@@ -166,8 +193,8 @@ export default function LessonView({ lesson, onRestart }) {
 
   if (step === "difficulty") {
     return (
-      <LessonShell buddy={buddy}>
-        <div className="kid-panel">
+      <LessonShell buddy={buddy} fit>
+        <div className="kid-panel kid-panel--fit">
           <p className="kid-step-label">Kies je niveau</p>
           <div className="difficulty-grid">
             {DIFFICULTIES.map((d) => (
@@ -178,8 +205,7 @@ export default function LessonView({ lesson, onRestart }) {
                 disabled={speaking}
                 onClick={() => pickDifficulty(d.id)}
               >
-                <span className="btn--difficulty__label">{d.label}</span>
-                <span className="btn--difficulty__hint">{DIFFICULTY_HINTS[d.id]}</span>
+                {d.label}
               </button>
             ))}
           </div>
@@ -217,22 +243,21 @@ export default function LessonView({ lesson, onRestart }) {
   }
 
   const showBlockFeedback =
-    taskPhase === "feedback" &&
-    completedSlots.length > 0 &&
-    (isBlokZien || isBlokHoren || pendingTypingStep || isTypen);
+    taskPhase === "feedback" && completedSlots.length > 0 && isDrag;
 
   const showPatternFeedback =
     taskPhase === "feedback" && isPatroon && patternChoice?.length > 0;
 
-  const showWordFeedback =
-    taskPhase === "feedback" &&
-    !showBlockFeedback &&
-    !showPatternFeedback &&
-    (isTypen || (isBlokZien && completedSlots.length === 0));
+  const showTypingFeedback =
+    taskPhase === "feedback" && isTypen && typedWord.trim().length > 0;
+
+  const showWordPlaatje =
+    currentWord?.image &&
+    (taskPhase === "answer" || taskPhase === "reflect" || taskPhase === "feedback");
 
   return (
-    <LessonShell buddy={buddy} compact={useCompactShell}>
-      <header className="lesson-progress">
+    <LessonShell buddy={buddy} fit={useFitLayout}>
+      <header className="lesson-progress lesson-progress--compact">
         <span className="lesson-progress__game">{taskMeta?.label}</span>
         <div className="lesson-progress__bar">
           <div
@@ -243,29 +268,45 @@ export default function LessonView({ lesson, onRestart }) {
         <span className="lesson-progress__meta">{progressLabel}</span>
       </header>
 
-      <section className={`lesson-card${useCompactShell ? " lesson-card--blocks" : ""}`}>
-        {showListenPrompt && <ListenPrompt />}
+      <section
+        className={`lesson-card lesson-card--fit${isPatroon ? " lesson-card--pattern" : ""}${isDrag ? " lesson-card--blocks" : ""}${isTypen ? " lesson-card--typing" : ""}`}
+      >
+        {showWordPlaatje && (
+          <WordPlaatje word={currentWord.word} image={currentWord.image} />
+        )}
 
         {showBlockFeedback && (
           <div className="feedback-blocks">
-            <p className="feedback-blocks__label">Zo heb je het gelegd:</p>
-            <DragWordGame slots={completedSlots} tray={[]} readOnly showLetters={false} />
-            {(isBlokZien || isTypen) && (
-              <WordHero word={currentWord.word} hint="Het woord is" highlight compact />
+            <DragWordGame
+              slots={completedSlots}
+              tray={[]}
+              readOnly
+              showLetters={false}
+              hideLegend
+              flexiblePlacement={isBlokHoren}
+            />
+            {showWordText && (
+              <WordHero word={currentWord.word} hint="" highlight compact />
             )}
           </div>
         )}
 
         {showPatternFeedback && (
           <div className="feedback-blocks">
-            <p className="feedback-blocks__label">Jouw patroon:</p>
             <PatternRow pattern={patternChoice} />
-            <WordHero word={currentWord.word} hint="Het woord was" highlight compact />
+            <WordHero word={currentWord.word} hint="" highlight compact />
           </div>
         )}
 
-        {showWordFeedback && (
-          <WordHero word={currentWord.word} hint="Het woord was" highlight />
+        {showTypingFeedback && (
+          <div className="feedback-blocks">
+            {typingPattern.length > 0 && (
+              <div className="type-word-game__pattern-recap">
+                <PatternRow pattern={typingPattern} small />
+              </div>
+            )}
+            <WordHero word={typedWord.trim()} hint="" highlight compact />
+          </div>
         )}
 
         {(taskPhase === "answer" || taskPhase === "reflect") && (
@@ -302,6 +343,7 @@ export default function LessonView({ lesson, onRestart }) {
             <button
               type="button"
               className="btn btn--kid-secondary"
+              disabled={speaking}
               onClick={changeAnswer}
             >
               Ik wil iets veranderen
@@ -318,7 +360,7 @@ export default function LessonView({ lesson, onRestart }) {
           >
             {pendingTypingStep
               ? "Typ het woord →"
-              : wordIndex >= wordQueue.length - 1
+              : wordIndex >= wordQueue.length - 1 && !isTypen
                 ? "Afronden"
                 : "Volgend woord →"}
           </button>

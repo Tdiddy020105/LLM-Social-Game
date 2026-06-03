@@ -1,20 +1,19 @@
-/** Server fallbacks — kept in sync with src/lib/lessonScript.js + lessonFallbacks.js */
+/** Server fallbacks — kept in sync with src/lib/lessonScript.js */
 
 const LINES = {
   difficulty_ask: "Kies makkelijk, normaal of moeilijk.",
   reflect_certain: "Ben je zeker van je antwoord? Kies hieronder.",
   task_blok_zien:
     "Kijk naar het woord en het plaatje. Leg de blokjes eronder. Wit is klinker, blauw is medeklinker.",
-  task_patroon:
-    "Luister naar het woord. Welk patroon hoort erbij? Blauw is medeklinker, wit is klinker.",
+  task_patroon: "Luister naar het woord. Kies het patroon dat bij het woord hoort.",
   task_blok_horen:
-    "Luister naar het woord. Versleep de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
+    "Luister naar het woord. Leg de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
   task_typen: "Typ het woord dat je net hebt gehoord.",
   feedback_correct: "Goed gedaan!",
   feedback_wrong_1: "Bijna. Probeer het nog eens.",
   feedback_wrong_2: "Bijna! Luister nog een keer.",
   feedback_wrong_3: "Even rustig. Daarna proberen we opnieuw.",
-  confidence_start: "Even rustig. Daarna proberen we opnieuw.",
+  confidence_start: "Even rustig. Klik op verder als je klaar bent.",
   session_end: "Super gedaan! Tot de volgende keer!",
 };
 

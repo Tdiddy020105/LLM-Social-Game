@@ -1,3 +1,4 @@
+import { useState } from "react";
 import BlockLegend from "./BlockLegend.jsx";
 import LegoBlock from "./LegoBlock.jsx";
 import { puzzleSlotLabel } from "../lib/lessonScript.js";
@@ -9,10 +10,31 @@ export default function DragWordGame({
   onDropTray,
   readOnly = false,
   showLetters = false,
+  hideLegend = false,
+  compact = false,
+  flexiblePlacement = false,
+  hideCounts = false,
 }) {
   const blockCount = slots.length;
   const placedCount = slots.filter(Boolean).length;
   const remainingCount = tray.length;
+
+  const [selectedId, setSelectedId] = useState(null);
+
+  function orderInSequence(index) {
+    if (!slots[index]) return undefined;
+    let order = 0;
+    for (let i = 0; i <= index; i += 1) {
+      if (slots[i]) order += 1;
+    }
+    return order;
+  }
+
+  function slotShowOrder(index) {
+    if (showLetters) return undefined;
+    if (flexiblePlacement) return orderInSequence(index);
+    return index + 1;
+  }
 
   function allowDrop(event) {
     if (readOnly) return;
@@ -20,16 +42,42 @@ export default function DragWordGame({
     event.dataTransfer.dropEffect = "move";
   }
 
+  function tapTrayLetter(letterId) {
+    setSelectedId((prev) => (prev === letterId ? null : letterId));
+  }
+
+  function tapSlot(index) {
+    if (readOnly) return;
+    if (selectedId) {
+      onDropSlot(index, selectedId);
+      setSelectedId(null);
+      return;
+    }
+    const letter = slots[index];
+    if (letter) {
+      onDropTray(letter.id);
+    }
+  }
+
+  function tapSlotBlock(letterId) {
+    if (readOnly) return;
+    setSelectedId((prev) => (prev === letterId ? null : letterId));
+  }
+
   return (
     <section
-      className={`build-area build-area--puzzle${readOnly ? " build-area--readonly" : ""}`}
+      className={`build-area build-area--puzzle${compact ? " build-area--compact" : ""}${readOnly ? " build-area--readonly" : ""}`}
       aria-label="Blok-puzzel"
     >
-      {!readOnly && <BlockLegend blockCount={blockCount} />}
+      {!readOnly && !hideLegend && (
+        <BlockLegend blockCount={blockCount} showCount={!hideCounts} />
+      )}
 
       <div className="puzzle-target">
         {!readOnly && (
-          <p className="puzzle-target__label">{puzzleSlotLabel(blockCount)}</p>
+          <p className="puzzle-target__label">
+            {puzzleSlotLabel(blockCount, { flexible: flexiblePlacement, hideCount: hideCounts })}
+          </p>
         )}
         <div
           className={`answer-row answer-row--count-${blockCount}`}
@@ -38,8 +86,9 @@ export default function DragWordGame({
           {slots.map((letter, index) => (
             <div
               key={`slot-${index}`}
-              className={`answer-slot ${letter ? "answer-slot--filled" : ""}`}
+              className={`answer-slot ${letter ? "answer-slot--filled" : ""}${selectedId && !letter ? " answer-slot--tap-target" : ""}`}
               onDragOver={allowDrop}
+              onClick={readOnly ? undefined : () => tapSlot(index)}
               onDrop={
                 readOnly
                   ? undefined
@@ -54,19 +103,25 @@ export default function DragWordGame({
                   letter={letter}
                   draggable={!readOnly}
                   hideLabel={!showLetters}
-                  showOrder={showLetters ? undefined : index + 1}
+                  showOrder={slotShowOrder(index)}
+                  selected={selectedId === letter.id}
+                  onTap={readOnly ? undefined : () => tapSlotBlock(letter.id)}
                 />
               ) : (
                 !readOnly && (
-                  <span className="answer-slot__placeholder">{index + 1}</span>
+                  <span className="answer-slot__placeholder">
+                    {flexiblePlacement ? "·" : index + 1}
+                  </span>
                 )
               )}
             </div>
           ))}
         </div>
-        {!readOnly && (
+        {!readOnly && !compact && !hideCounts && (
           <p className="puzzle-target__hint">
-            {placedCount} van {blockCount} vakjes gevuld
+            {flexiblePlacement
+              ? `${placedCount} blokjes gelegd`
+              : `${placedCount} van ${blockCount} vakjes gevuld`}
           </p>
         )}
       </div>
@@ -74,9 +129,9 @@ export default function DragWordGame({
       {!readOnly && (
         <div className="puzzle-source">
           <p className="puzzle-source__label">
-            Blokjes om te verslepen
-            {remainingCount > 0 && (
-              <span className="puzzle-source__count"> ({remainingCount} over)</span>
+            Blokjes
+            {!hideCounts && remainingCount > 0 && (
+              <span className="puzzle-source__count"> ({remainingCount})</span>
             )}
           </p>
           <div
@@ -97,6 +152,8 @@ export default function DragWordGame({
                   draggable
                   hideLabel={!showLetters}
                   showOrder={showLetters ? undefined : letter.vowelOrdinal}
+                  selected={selectedId === letter.id}
+                  onTap={() => tapTrayLetter(letter.id)}
                 />
               ))
             )}

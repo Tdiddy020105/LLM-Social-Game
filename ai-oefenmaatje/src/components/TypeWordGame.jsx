@@ -3,6 +3,7 @@ export default function TypeWordGame({
   onChange,
   disabled = false,
   placeholder = "Typ het woord",
+  autoFocus = false,
 }) {
   return (
     <section className="build-area type-word-game" aria-label="Typ het woord">
@@ -23,6 +24,7 @@ export default function TypeWordGame({
         spellCheck={false}
         inputMode="text"
         lang="nl"
+        autoFocus={autoFocus}
       />
     </section>
   );

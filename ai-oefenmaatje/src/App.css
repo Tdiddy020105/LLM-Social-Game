@@ -62,10 +62,6 @@ button {
 .app--kid .lesson-shell {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-}
-
-.app--kid .lesson-shell.lesson-shell--blocks {
   overflow: hidden;
 }
 
@@ -1454,7 +1450,7 @@ button {
   flex-direction: column;
   justify-content: flex-start;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   gap: 10px;
 }
 
@@ -1720,7 +1716,7 @@ button {
   padding: 12px 16px 20px;
   gap: 10px;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--kid-bg);
   color: var(--kid-text);
   flex: 1;
@@ -1813,6 +1809,10 @@ button {
   gap: 6px;
 }
 
+.buddy-maatje__face--alive {
+  animation: buddy-idle 2.8s ease-in-out infinite;
+}
+
 .buddy-maatje__face--talking {
   animation: buddy-bounce 0.6s ease-in-out infinite;
 }
@@ -1877,6 +1877,16 @@ button {
 .buddy-maatje__actions .btn--repeat {
   margin-top: 0;
   max-width: 100%;
+}
+
+@keyframes buddy-idle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+  }
 }
 
 @keyframes buddy-bounce {
@@ -2117,9 +2127,9 @@ button {
   border-radius: 18px;
   padding: clamp(12px, 3vw, 18px) clamp(12px, 3vw, 16px) clamp(16px, 3vw, 22px);
   box-shadow: var(--kid-shadow);
-  min-height: 0;
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: clamp(8px, 2vw, 14px);
@@ -2277,62 +2287,124 @@ button {
   color: #e6a800;
 }
 
-/* Block game — fit everything on screen, no scrolling */
-.child-area--lesson:has(.lesson-shell--blocks) {
+/* Lesson — fit everything on one screen, no scrolling */
+.child-area--lesson:has(.lesson-shell--fit) {
   overflow: hidden;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
 }
 
-.lesson-shell--blocks {
+.lesson-shell--fit {
   overflow: hidden;
-  gap: 6px;
+  gap: 4px;
 }
 
-.lesson-shell--blocks .buddy-maatje {
+.lesson-shell--fit .buddy-maatje {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: 420px;
   padding: 2px 8px 0;
+  text-align: center;
 }
 
-.lesson-shell--blocks .buddy-maatje__face {
-  width: 48px;
-  height: 48px;
+.lesson-shell--fit .buddy-maatje__face {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
 }
 
-.lesson-shell--blocks .buddy-maatje__eyes {
-  width: 28px;
+.lesson-shell--fit .buddy-maatje__eyes {
+  width: 26px;
   height: 6px;
   box-shadow:
-    -8px 0 0 0 #4a3828,
-    8px 0 0 0 #4a3828;
+    -7px 0 0 0 #4a3828,
+    7px 0 0 0 #4a3828;
 }
 
-.lesson-shell--blocks .buddy-maatje__smile {
-  width: 18px;
-  height: 8px;
+.lesson-shell--fit .buddy-maatje__smile {
+  width: 16px;
+  height: 7px;
   border-width: 2px;
 }
 
-.lesson-shell--blocks .buddy-maatje__caption {
-  margin-top: 6px;
+.lesson-shell--fit .buddy-maatje__caption {
+  margin-top: 4px;
   font-size: 0.85rem;
   min-height: 0;
-  max-height: 2.6em;
+  max-height: 2.4em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  text-align: center;
 }
 
-.lesson-shell--blocks .btn--repeat {
+.lesson-shell--fit .buddy-maatje__actions {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.lesson-shell--fit .btn--repeat {
   padding: 4px 10px;
-  font-size: 0.75rem;
-  margin-top: 2px;
+  font-size: 0.72rem;
+  margin-top: 0;
 }
 
-.lesson-shell--blocks .lesson-shell__main {
-  gap: 6px;
+.lesson-shell--fit .lesson-shell__main {
+  gap: 4px;
   overflow: hidden;
+  max-width: 100%;
 }
 
+.lesson-progress--compact {
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.lesson-progress--compact .lesson-progress__game {
+  font-size: 0.78rem;
+}
+
+.lesson-progress--compact .lesson-progress__meta {
+  font-size: 0.72rem;
+}
+
+.lesson-progress--compact .lesson-progress__bar {
+  height: 6px;
+}
+
+.lesson-card--fit {
+  overflow: hidden;
+  padding: 8px 10px 10px;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.lesson-card--fit .lesson-card__task {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.lesson-card--fit .lesson-card__actions,
+.lesson-card--fit .reflect-box {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Block game — side-by-side word + puzzle */
 .lesson-card--blocks {
   overflow: hidden;
   padding: 10px 12px 12px;
@@ -2351,8 +2423,7 @@ button {
 }
 
 .lesson-card--blocks .lesson-card__actions {
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
   gap: 6px;
   overflow: visible;
 }
@@ -2360,8 +2431,76 @@ button {
 .lesson-card--blocks .build-area--puzzle {
   flex: 1;
   min-height: 0;
-  gap: 6px;
-  overflow: visible;
+  gap: 4px;
+  overflow: hidden;
+  width: 100%;
+  align-items: center;
+}
+
+.lesson-card--blocks .build-area--compact {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.build-area--compact .puzzle-target {
+  flex-shrink: 0;
+}
+
+.build-area--compact .puzzle-source {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.lesson-card--blocks .puzzle-target,
+.lesson-card--blocks .puzzle-source {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lesson-card--fit .word-plaatje {
+  flex-shrink: 0;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.lesson-card--fit .word-plaatje .word-image {
+  margin: 0 auto;
+  max-width: min(160px, 28vw);
+}
+
+.lesson-card--fit .word-plaatje .word-image__img {
+  max-height: min(18vh, 110px);
+  width: auto;
+  margin: 0 auto;
+}
+
+.lesson-card--fit .word-support--text {
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.lesson-card--fit .word-support--text .word-hero {
+  margin-bottom: 2px;
+  padding: 4px 10px;
+}
+
+.lesson-card--fit .word-support--text .word-hero__word {
+  font-size: clamp(1.3rem, 4vw, 1.85rem);
+}
+
+.lesson-card--fit .block-legend--compact {
+  margin-bottom: 4px;
+  flex-shrink: 0;
 }
 
 .lesson-card--blocks .puzzle-instruction {
@@ -2398,12 +2537,39 @@ button {
 .lesson-card--blocks .answer-row {
   min-height: 0;
   flex-shrink: 0;
-  gap: clamp(6px, 2vw, 12px);
+  gap: clamp(4px, 1.5vw, 10px);
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .lesson-card--blocks .answer-slot {
-  width: clamp(44px, 13vw, 68px);
-  min-height: 40px;
+  width: clamp(40px, 11vw, 60px);
+  min-height: 36px;
+}
+
+.lesson-card--blocks .answer-row--count-5 .answer-slot,
+.lesson-card--blocks .answer-row--count-6 .answer-slot {
+  width: clamp(36px, 9vw, 52px);
+  min-height: 34px;
+}
+
+.lesson-card--blocks .answer-row--count-7 .answer-slot,
+.lesson-card--blocks .answer-row--count-8 .answer-slot {
+  width: clamp(32px, 8vw, 46px);
+  min-height: 32px;
+}
+
+.lesson-card--blocks .answer-row--count-5 .lego-block,
+.lesson-card--blocks .answer-row--count-6 .lego-block {
+  min-width: 36px;
+  height: 30px;
+}
+
+.lesson-card--blocks .answer-row--count-7 .lego-block,
+.lesson-card--blocks .answer-row--count-8 .lego-block {
+  min-width: 32px;
+  height: 28px;
 }
 
 .lesson-card--blocks .answer-slot__placeholder {
@@ -2411,13 +2577,16 @@ button {
 }
 
 .lesson-card--blocks .block-tray {
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 8px;
-  gap: 8px;
+  flex: 0 1 auto;
+  min-height: 36px;
+  max-height: none;
+  padding: 6px;
+  gap: 6px;
   align-content: center;
   overflow: visible;
   flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
 }
 
 .lesson-card--blocks .puzzle-source {
@@ -2425,9 +2594,25 @@ button {
 }
 
 .lesson-card--blocks .lego-block {
-  min-width: 44px;
-  height: 36px;
-  padding: 4px 8px 4px;
+  min-width: 40px;
+  height: 32px;
+  padding: 3px 6px 3px;
+  font-size: 0.75rem;
+}
+
+.lego-block--tappable {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.lego-block--selected {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.answer-slot--tap-target {
+  outline: 2px dashed #2563eb;
+  outline-offset: 2px;
 }
 
 .lesson-card--blocks .btn--kid-primary {
@@ -2554,6 +2739,24 @@ button {
 }
 
 /* Typing step */
+.lesson-card--typing {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lesson-card--typing .lesson-card__task {
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+}
+
+.lesson-card .build-area.type-word-game {
+  flex: 0 0 auto;
+  min-height: auto;
+  padding: 8px 0 12px;
+}
+
 .type-word-game {
   width: 100%;
   max-width: 400px;
@@ -2659,7 +2862,24 @@ button {
   margin-bottom: 4px;
 }
 
-/* Difficulty picker hints */
+.kid-panel--fit {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 16px);
+}
+
+.kid-panel--fit .difficulty-grid {
+  gap: 8px;
+}
+
+.kid-panel--fit .btn--difficulty {
+  padding: 12px 10px;
+}
+
 .btn--difficulty {
   display: flex;
   flex-direction: column;
@@ -2684,3 +2904,70 @@ button {
 .feedback-blocks .word-hero--compact {
   margin-top: 12px;
 }
+
+.task-static-hint {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 8px 0 12px;
+  color: var(--kid-text-muted, #6a5a48);
+}
+
+.block-legend--compact {
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.build-area--readonly {
+  pointer-events: none;
+}
+
+/* Normaal: patroon — alles op één scherm, geen scroll */
+.lesson-shell--fit.lesson-shell--pattern,
+.lesson-card--pattern {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lesson-card--pattern .lesson-card__task {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.lesson-card--pattern .pattern-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  align-items: center;
+  width: 100%;
+}
+
+.lesson-card--pattern .pattern-option {
+  padding: 10px 12px;
+  min-height: 0;
+}
+
+.lesson-card--pattern .pattern-row__block {
+  width: 22px;
+  height: 18px;
+}
+
+.lesson-card--pattern .word-support--listen .word-image {
+  max-width: 120px;
+  margin-bottom: 6px;
+}
+
+.lesson-card--pattern .block-legend--compact {
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+
+.word-support--listen .word-image {
+  max-width: min(140px, 26vw);
+  margin: 0 auto 4px;
+}
+
+/* Removed side-by-side layouts — centered vertical stack, compact to fit one screen */

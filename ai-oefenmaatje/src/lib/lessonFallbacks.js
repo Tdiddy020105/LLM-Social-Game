@@ -8,7 +8,7 @@ import {
 } from "./lessonScript.js";
 
 export function getLessonFallback(context) {
-  const { phase, taskType, correct, mistakeCount } = context;
+  const { phase, taskType, mistakeCount } = context;
 
   if (phase === "difficulty_ask") return DIFFICULTY_LINE.line;
   if (phase === "reflect_certain" || phase === "reflect_slow") {

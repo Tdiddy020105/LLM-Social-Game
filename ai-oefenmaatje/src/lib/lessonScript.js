@@ -18,20 +18,6 @@ export const DIFFICULTY_LINE = {
   line: "Kies makkelijk, normaal of moeilijk.",
 };
 
-export const DIFFICULTY_HINTS = {
-  makkelijk: "Je ziet het woord en een plaatje. Leg de blokjes eronder.",
-  normaal: "Je hoort het woord. Kies het juiste blauw-wit patroon.",
-  moeilijk: "Je hoort het woord. Leg blokjes en typ het woord.",
-};
-
-export const LISTEN_PROMPT_LINE = {
-  line: "Luister goed. Het woord staat niet op je scherm.",
-};
-
-export const BLOCK_LEGEND_LINE = {
-  line: "Wit is klinker, blauw is medeklinker. Versleep elk blokje naar een vakje erboven. Van links naar rechts, net als het woord dat je hoort.",
-};
-
 export function taskHint(taskType) {
   if (taskType === "blok-zien") {
     return {
@@ -40,18 +26,16 @@ export function taskHint(taskType) {
   }
   if (taskType === "patroon-kiezen") {
     return {
-      line: "Luister naar het woord. Welk patroon hoort erbij? Blauw is medeklinker, wit is klinker.",
+      line: "Luister naar het woord. Kies het patroon dat bij het woord hoort.",
     };
   }
   if (taskType === "blok-horen") {
     return {
-      line: "Luister naar het woord. Versleep de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
+      line: "Luister naar het woord. Leg de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
     };
   }
   if (taskType === "woord-typen") {
-    return {
-      line: "Typ het woord dat je net hebt gehoord.",
-    };
+    return { line: "Typ het woord dat je net hebt gehoord." };
   }
   return { line: "Laten we verder gaan." };
 }
@@ -62,16 +46,9 @@ export function feedbackLine(correct, mistakeCount, taskType) {
     return { line: "Even rustig. Daarna proberen we opnieuw." };
   }
   if (taskType === "woord-typen") {
-    if (mistakeCount === 2) return { line: "Bijna! Probeer het nog een keer." };
-    return { line: "Bijna. Luister nog eens en typ het woord opnieuw." };
+    return { line: "Bijna. Probeer het nog een keer." };
   }
-  if (taskType === "patroon-kiezen") {
-    if (mistakeCount === 2) return { line: "Bijna! Luister nog een keer." };
-    return { line: "Bijna. Luister nog eens en kies het patroon opnieuw." };
-  }
-  if (mistakeCount === 2) {
-    return { line: "Bijna! Luister nog een keer." };
-  }
+  if (mistakeCount === 2) return { line: "Bijna! Luister nog een keer." };
   return { line: "Bijna. Probeer het nog eens." };
 }
 
@@ -90,7 +67,13 @@ export const SESSION_END_KID = {
 export const SESSION_END_PARENT_NOTE =
   "Voor ouder: vul de enquête in die je per e-mail ontving.";
 
-export function puzzleSlotLabel(blockCount) {
+export function puzzleSlotLabel(blockCount, { flexible = false, hideCount = false } = {}) {
+  if (hideCount) {
+    return flexible ? "Leg de blokjes — volgorde telt" : "Leg de blokjes — van links naar rechts";
+  }
+  if (flexible) {
+    return `${blockCount} vakjes — volgorde telt`;
+  }
   return `${blockCount} ${blockCount === 1 ? "vakje" : "vakjes"} — van links naar rechts`;
 }
 
