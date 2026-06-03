@@ -59,9 +59,10 @@ export default function DragWordGame({
     }
   }
 
-  function tapSlotBlock(letterId) {
+  function tapPlacedBlock(letterId) {
     if (readOnly) return;
-    setSelectedId((prev) => (prev === letterId ? null : letterId));
+    onDropTray(letterId);
+    setSelectedId(null);
   }
 
   return (
@@ -101,11 +102,11 @@ export default function DragWordGame({
               {letter ? (
                 <LegoBlock
                   letter={letter}
-                  draggable={!readOnly}
+                  draggable={!readOnly && !flexiblePlacement}
                   hideLabel={!showLetters}
                   showOrder={slotShowOrder(index)}
                   selected={selectedId === letter.id}
-                  onTap={readOnly ? undefined : () => tapSlotBlock(letter.id)}
+                  onTap={readOnly ? undefined : () => tapPlacedBlock(letter.id)}
                 />
               ) : (
                 !readOnly && (
@@ -137,6 +138,13 @@ export default function DragWordGame({
           <div
             className="block-tray"
             onDragOver={allowDrop}
+            onClick={
+              readOnly
+                ? undefined
+                : () => {
+                    if (selectedId) setSelectedId(null);
+                  }
+            }
             onDrop={(event) => {
               event.preventDefault();
               onDropTray(event.dataTransfer.getData("application/letter-id"));

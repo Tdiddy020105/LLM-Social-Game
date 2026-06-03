@@ -2030,6 +2030,19 @@ button {
   cursor: wait;
 }
 
+.btn--kid-primary--ready:not(:disabled) {
+  background: #4caf50;
+  box-shadow: 0 4px 0 #2e7d32;
+}
+
+.btn--kid-primary--ready:hover:not(:disabled) {
+  background: #66bb6a;
+}
+
+.btn--kid-primary--ready:active:not(:disabled) {
+  box-shadow: 0 2px 0 #2e7d32;
+}
+
 .btn--kid-secondary {
   width: 100%;
   max-width: 400px;

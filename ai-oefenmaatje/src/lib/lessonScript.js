@@ -21,7 +21,7 @@ export const DIFFICULTY_LINE = {
 export function taskHint(taskType) {
   if (taskType === "blok-zien") {
     return {
-      line: "Kijk naar het woord en het plaatje. Leg de blokjes eronder. Wit is klinker, blauw is medeklinker.",
+      line: "Kijk naar het woord en het plaatje. Leg de blokjes eronder. Wit is een klinker, blauw is een medeklinker.",
     };
   }
   if (taskType === "patroon-kiezen") {
@@ -31,7 +31,7 @@ export function taskHint(taskType) {
   }
   if (taskType === "blok-horen") {
     return {
-      line: "Luister naar het woord. Leg de blokjes in de vakjes. Wit en blauw, van links naar rechts.",
+      line: "Luister naar het woord. Leg de klinker- en medeklinkerblokjes. Volgorde telt.",
     };
   }
   if (taskType === "woord-typen") {
@@ -69,7 +69,9 @@ export const SESSION_END_PARENT_NOTE =
 
 export function puzzleSlotLabel(blockCount, { flexible = false, hideCount = false } = {}) {
   if (hideCount) {
-    return flexible ? "Leg de blokjes — volgorde telt" : "Leg de blokjes — van links naar rechts";
+    return flexible
+      ? "Leg de blokjes — volgorde telt. Tik om terug te leggen."
+      : "Leg de blokjes — van links naar rechts";
   }
   if (flexible) {
     return `${blockCount} vakjes — volgorde telt`;

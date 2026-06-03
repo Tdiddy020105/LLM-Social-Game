@@ -61,6 +61,29 @@ function patternKey(pattern) {
   return pattern.map((t) => (t === "vowel" ? "W" : "B")).join("");
 }
 
+function maxConsecutiveRun(pattern, type) {
+  let max = 0;
+  let run = 0;
+  for (const t of pattern) {
+    if (t === type) {
+      run += 1;
+      max = Math.max(max, run);
+    } else {
+      run = 0;
+    }
+  }
+  return max;
+}
+
+/** Geen 3 medeklinkers op rij — komt in het Nederlands niet voor. */
+export function isPlausibleDutchPattern(pattern) {
+  if (!pattern?.length) return false;
+  return (
+    maxConsecutiveRun(pattern, "consonant") <= 2 &&
+    maxConsecutiveRun(pattern, "vowel") <= 2
+  );
+}
+
 function mutatePattern(pattern) {
   const next = [...pattern];
   const idx = Math.floor(Math.random() * next.length);
@@ -79,6 +102,15 @@ export function getPatternOptions(wordData) {
   const seen = new Set([correctKey]);
   const options = [{ id: correctKey, pattern: correct }];
 
+  function tryAdd(pattern) {
+    if (!isPlausibleDutchPattern(pattern)) return false;
+    const key = patternKey(pattern);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    options.push({ id: key, pattern });
+    return true;
+  }
+
   const candidates = [
     mutatePattern(correct),
     mutatePattern(correct),
@@ -87,23 +119,17 @@ export function getPatternOptions(wordData) {
   ];
 
   for (const candidate of candidates) {
-    const key = patternKey(candidate);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    options.push({ id: key, pattern: candidate });
+    tryAdd(candidate);
     if (options.length >= 3) break;
   }
 
-  while (options.length < 3) {
-    const extra = mutatePattern(correct);
-    const key = patternKey(extra);
-    if (!seen.has(key)) {
-      seen.add(key);
-      options.push({ id: key, pattern: extra });
-    }
+  let attempts = 0;
+  while (options.length < 3 && attempts < 24) {
+    attempts += 1;
+    tryAdd(mutatePattern(correct));
   }
 
-  return shuffle(options);
+  return shuffle(options.filter((o) => isPlausibleDutchPattern(o.pattern)));
 }
 
 export function patternMatches(selectedPattern, wordData) {
@@ -193,6 +219,10 @@ export function dragCanSubmit(slots, wordData, taskType) {
 
   if (taskType === "blok-zien") {
     return slots.length === required && filledCount === required;
+  }
+
+  if (taskType === "blok-horen") {
+    return filledCount > 0;
   }
 
   return filledCount === required;

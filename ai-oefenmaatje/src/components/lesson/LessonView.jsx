@@ -82,6 +82,8 @@ export default function LessonView({ lesson, onRestart }) {
   const isBlokHoren = taskType === "blok-horen";
   const isTypen = taskType === "woord-typen";
   const isDrag = isDragTask(taskType);
+  const showKlaarReady =
+    canSubmit && !speaking && taskType !== "blok-horen";
   const showWordText = difficulty && showsWordText(difficulty);
   const showBlockCount = difficulty && showsBlockCount(difficulty);
 
@@ -321,7 +323,7 @@ export default function LessonView({ lesson, onRestart }) {
           <div className="lesson-card__actions">
             <button
               type="button"
-              className="btn btn--kid-primary"
+              className={`btn btn--kid-primary${showKlaarReady ? " btn--kid-primary--ready" : ""}`}
               disabled={!canSubmit || speaking}
               onClick={submitAnswer}
             >

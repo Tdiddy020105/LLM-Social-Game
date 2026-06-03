@@ -43,6 +43,8 @@ export function useLesson({ aiEnabled = false } = {}) {
 
   const lastSpokenRef = useRef("");
   const lessonStartedRef = useRef(false);
+  const introHeardRef = useRef(false);
+  const taskIntroHeardRef = useRef(false);
   const taskInstructionRef = useRef("");
 
   const [difficulty, setDifficulty] = useState(null);
@@ -199,6 +201,8 @@ export function useLesson({ aiEnabled = false } = {}) {
     if (lessonStartedRef.current) return;
     lessonStartedRef.current = true;
     setStep("difficulty");
+    if (introHeardRef.current) return;
+    introHeardRef.current = true;
     await speakCaption(KID_INTRO_LINE.line, { interrupt: true });
     await speakCaption(DIFFICULTY_LINE.line);
   }, [speakCaption]);
@@ -209,8 +213,9 @@ export function useLesson({ aiEnabled = false } = {}) {
       setTaskType(nextTaskType);
       resetTaskUI(wordData, nextTaskType);
 
-      if (speakTaskIntro) {
+      if (speakTaskIntro && !taskIntroHeardRef.current) {
         await speakInstruction(lineText(taskHint(nextTaskType)));
+        taskIntroHeardRef.current = true;
       }
 
       await speakWord(wordData.word, { difficulty: level });
@@ -334,9 +339,8 @@ export function useLesson({ aiEnabled = false } = {}) {
     setStep("task");
     setMistakeCount(0);
     resetTaskUI(currentWord, taskType);
-    await speakInstruction(lineText(taskHint(taskType)));
     await speakWord(currentWord.word);
-  }, [currentWord, taskType, resetTaskUI, speakInstruction, speakWord]);
+  }, [currentWord, taskType, resetTaskUI, speakWord]);
 
   const startTypingStep = useCallback(async () => {
     setPendingTypingStep(false);
