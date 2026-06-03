@@ -62,11 +62,18 @@ export function useLesson({ aiEnabled = false } = {}) {
   const [pendingTypingStep, setPendingTypingStep] = useState(false);
   const pendingTypingRef = useRef(false);
   const checkingRef = useRef(false);
+  const difficultyRef = useRef(null);
 
   const currentWord = wordQueue[wordIndex];
   const taskMeta = TASK_TYPES.find((t) => t.id === taskType);
 
   pendingTypingRef.current = pendingTypingStep;
+  difficultyRef.current = difficulty;
+
+  const resolveDifficulty = useCallback(
+    (override) => override ?? difficulty ?? difficultyRef.current,
+    [difficulty]
+  );
 
   const speakCaption = useCallback(async (text, { interrupt = false } = {}) => {
     const line = text?.trim();
@@ -84,27 +91,32 @@ export function useLesson({ aiEnabled = false } = {}) {
   }, []);
 
   /** Voice only — caption stays empty (normaal/moeilijk woord). */
-  const speakWordVoiceOnly = useCallback(async (word, { interrupt = false } = {}) => {
-    if (!word) return;
-    const phrase = wordTtsPhrase(word, difficulty);
-    lastSpokenRef.current = phrase;
-    if (interrupt) speech.interruptSpeech();
-    setSpeaking(true);
-    setCaption("");
-    await speech.speakAndWait(phrase);
-    setSpeaking(false);
-  }, [difficulty]);
+  const speakWordVoiceOnly = useCallback(
+    async (word, { interrupt = false, difficulty: levelOverride } = {}) => {
+      if (!word) return;
+      const level = resolveDifficulty(levelOverride);
+      const phrase = wordTtsPhrase(word, level);
+      lastSpokenRef.current = phrase;
+      if (interrupt) speech.interruptSpeech();
+      setSpeaking(true);
+      setCaption("");
+      await speech.speakAndWait(phrase, { interrupt, force: true });
+      setSpeaking(false);
+    },
+    [resolveDifficulty]
+  );
 
   const speakWord = useCallback(
-    async (word, { interrupt = false } = {}) => {
-      if (!word || !difficulty) return;
-      if (showsWordText(difficulty)) {
-        await speakCaption(wordTtsPhrase(word, difficulty), { interrupt });
+    async (word, { interrupt = false, difficulty: levelOverride } = {}) => {
+      const level = resolveDifficulty(levelOverride);
+      if (!word || !level) return;
+      if (showsWordText(level)) {
+        await speakCaption(wordTtsPhrase(word, level), { interrupt });
       } else {
-        await speakWordVoiceOnly(word, { interrupt });
+        await speakWordVoiceOnly(word, { interrupt, difficulty: level });
       }
     },
-    [difficulty, speakCaption, speakWordVoiceOnly]
+    [resolveDifficulty, speakCaption, speakWordVoiceOnly]
   );
 
   const speakInstruction = useCallback(
@@ -167,6 +179,7 @@ export function useLesson({ aiEnabled = false } = {}) {
     setCaption("");
     setSpeaking(false);
     setDifficulty(null);
+    difficultyRef.current = null;
     setTaskType("blok-zien");
     setWordQueue([]);
     setWordIndex(0);
@@ -191,7 +204,8 @@ export function useLesson({ aiEnabled = false } = {}) {
   }, [speakCaption]);
 
   const beginWordTask = useCallback(
-    async (wordData, nextTaskType, { speakTaskIntro = false } = {}) => {
+    async (wordData, nextTaskType, { speakTaskIntro = false, difficulty: levelOverride } = {}) => {
+      const level = resolveDifficulty(levelOverride);
       setTaskType(nextTaskType);
       resetTaskUI(wordData, nextTaskType);
 
@@ -199,9 +213,9 @@ export function useLesson({ aiEnabled = false } = {}) {
         await speakInstruction(lineText(taskHint(nextTaskType)));
       }
 
-      await speakWord(wordData.word);
+      await speakWord(wordData.word, { difficulty: level });
     },
-    [resetTaskUI, speakInstruction, speakWord]
+    [resetTaskUI, speakInstruction, speakWord, resolveDifficulty]
   );
 
   const pickDifficulty = useCallback(
@@ -210,12 +224,16 @@ export function useLesson({ aiEnabled = false } = {}) {
       const first = queue[0];
       const initialTask = getTaskForDifficulty(level);
 
+      difficultyRef.current = level;
       setDifficulty(level);
       setWordQueue(queue);
       setWordIndex(0);
       setStep("task");
 
-      await beginWordTask(first, initialTask, { speakTaskIntro: true });
+      await beginWordTask(first, initialTask, {
+        speakTaskIntro: true,
+        difficulty: level,
+      });
     },
     [beginWordTask]
   );

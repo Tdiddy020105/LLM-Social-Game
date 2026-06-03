@@ -204,15 +204,15 @@ async function speakNow(text) {
   await speakBrowser(trimmed);
 }
 
-function enqueue(playFn, { interrupt = false, text = "" } = {}) {
+function enqueue(playFn, { interrupt = false, text = "", force = false } = {}) {
   if (interrupt) {
     stopAudio();
     lastQueuedText = "";
     speakQueue = Promise.resolve();
-  } else if (text && text === lastQueuedText) {
+  } else if (!force && text && text === lastQueuedText) {
     return speakQueue;
   }
-  if (text) lastQueuedText = text;
+  if (text && !force) lastQueuedText = text;
 
   speakQueue = speakQueue
     .then(async () => {
@@ -225,8 +225,8 @@ function enqueue(playFn, { interrupt = false, text = "" } = {}) {
   return speakQueue;
 }
 
-export function speakAndWait(text, { interrupt = false } = {}) {
-  return enqueue(() => speakNow(text), { interrupt, text: text?.trim() });
+export function speakAndWait(text, { interrupt = false, force = false } = {}) {
+  return enqueue(() => speakNow(text), { interrupt, text: text?.trim(), force });
 }
 
 export function speakWord(word, { interrupt = false } = {}) {
